@@ -1,0 +1,42 @@
+// Enums must be all tuples or all objects. If enum is an object, user must
+// specify target variable like this:
+// If enum is an array, 0th index will be used as a type.
+enum Message(type) {
+  Join,
+  Chat { message: str },
+  Leave,
+}
+
+struct MessageContainer(checksum: u8, message: Message);
+
+struct Packet {
+  sender: (i32, str),
+  time: u64,
+  size: u8,
+  // size must be known before messages
+  messages: [Message; size],
+  checksum: str,
+}
+
+struct LeavePacket {
+  sender: (i32, str),
+  // This is also possible.
+  leave: Message.Leave,
+}
+
+// Generics demonstration
+struct Boxed<T> {
+  value: T,
+}
+
+// This is a built-in class. It's possible to use generics in enums too
+enum Option<T> {
+  None,
+  // size 1 tuple automatically gets expanded
+  Some(T),
+}
+
+struct GenericTest {
+  boxed: Boxed<i32>,
+  option: Option<str>,
+}
