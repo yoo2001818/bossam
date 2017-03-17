@@ -1,0 +1,47 @@
+{
+  "name": "js-to-byte",
+  "version": "0.1.0",
+  "description": "JavaScript object serialization library with Rust-like DSL",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run jest && npm run flow",
+    "jest": "jest",
+    "flow": "flow",
+    "build": "babel src -d lib --copy-files"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.jsx?$": "babel-jest"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yoo2001818/js-to-byte.git"
+  },
+  "author": "yoo2001818",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yoo2001818/js-to-byte/issues"
+  },
+  "homepage": "https://github.com/yoo2001818/js-to-byte#readme",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "babel-core": "^6.22.1",
+    "babel-eslint": "^7.1.1",
+    "babel-jest": "^18.0.0",
+    "babel-preset-env": "^1.1.4",
+    "babel-preset-react": "^6.16.0",
+    "babel-register": "^6.22.0",
+    "eslint": "^3.14.1",
+    "eslint-config-semistandard": "^7.0.0",
+    "eslint-config-standard": "^6.2.1",
+    "eslint-config-standard-jsx": "^3.2.0",
+    "eslint-plugin-flowtype": "^2.30.0",
+    "eslint-plugin-promise": "^3.4.0",
+    "eslint-plugin-react": "^6.9.0",
+    "eslint-plugin-standard": "^2.0.1",
+    "flow-bin": "^0.38.0",
+    "jest": "^18.1.0"
+  }
+}
