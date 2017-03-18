@@ -1,15 +1,15 @@
 const Token = (type) => () => ({ type });
 const NameToken = (type) => (match) => ({ type, name: match[1] });
-const SwitchToken = (type, mode) => (match, state) => {
+const SwitchNoOp = (mode) => (match, state) => {
   state.mode = mode;
-  return { type };
+  return undefined;
 };
 const NoOp = () => undefined;
 
 const SYNTAX_TABLE = {
   main: [
-    [/\/\/.*$/gm, Token('commentLine')],
-    [/\/\*/g, SwitchToken('commentBlock', 'commentBlock')],
+    [/\/\/.*$/gm, NoOp],
+    [/\/\*/g, SwitchNoOp('commentBlock')],
     [/([a-zA-Z_$][a-zA-Z0-9_$]*)/g, NameToken('keyword')],
     // Only numbers are supported.
     [/(\d+)/g, NameToken('number')],
@@ -28,7 +28,7 @@ const SYNTAX_TABLE = {
     [/\s+/g, NoOp],
   ],
   commentBlock: [
-    [/\*\//g, SwitchToken('commentBlockEnd', 'main')],
+    [/\*\//g, SwitchNoOp('main')],
     [/([^*]+|.)/g, NoOp],
   ],
 };
@@ -60,12 +60,10 @@ export default function *tokenize(code) {
     let next = false;
     for (let i = 0; i < results.length; ++i) {
       let result = results[i][1](results[i][0], state);
-      if (result !== undefined) {
-        yield result;
-        index = results[i][0][0].length + index;
-        next = true;
-        break;
-      }
+      if (result !== undefined) yield result;
+      index = results[i][0][0].length + index;
+      next = true;
+      break;
     }
     if (!next) {
       index = results[results.length - 1][0][0].length + index;

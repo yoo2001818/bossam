@@ -6,7 +6,7 @@ describe('tokenize', () => {
     expect([...tokenize(`
       // What do you expect?
       // Hello!
-    `)]).toEqual([{ type: 'commentLine' }, { type: 'commentLine' }]);
+    `)]).toEqual([]);
   });
   it('should support block comments', () => {
     expect([...tokenize(`
@@ -14,12 +14,7 @@ describe('tokenize', () => {
       /* This
          too!
       */
-    `)]).toEqual([
-      { type: 'commentBlock' },
-      { type: 'commentBlockEnd' },
-      { type: 'commentBlock' },
-      { type: 'commentBlockEnd' },
-    ]);
+    `)]).toEqual([]);
   });
   it('should parse test code', () => {
     [...tokenize(fs.readFileSync('./test.jsbyte', 'utf-8'))];
