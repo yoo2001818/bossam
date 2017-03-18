@@ -3,18 +3,18 @@ import tokenize from './tokenize';
 
 describe('tokenize', () => {
   it('should support line comments', () => {
-    expect(tokenize(`
+    expect([...tokenize(`
       // What do you expect?
       // Hello!
-    `)).toEqual([{ type: 'commentLine' }, { type: 'commentLine' }]);
+    `)]).toEqual([{ type: 'commentLine' }, { type: 'commentLine' }]);
   });
   it('should support block comments', () => {
-    expect(tokenize(`
+    expect([...tokenize(`
       /* This is a block comment */
       /* This
          too!
       */
-    `)).toEqual([
+    `)]).toEqual([
       { type: 'commentBlock' },
       { type: 'commentBlockEnd' },
       { type: 'commentBlock' },
@@ -22,6 +22,6 @@ describe('tokenize', () => {
     ]);
   });
   it('should parse test code', () => {
-    tokenize(fs.readFileSync('./test.jsbyte', 'utf-8'));
+    [...tokenize(fs.readFileSync('./test.jsbyte', 'utf-8'))];
   });
 });

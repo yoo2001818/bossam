@@ -33,8 +33,7 @@ const SYNTAX_TABLE = {
   ],
 };
 
-export default function tokenize(code) {
-  let output = [];
+export default function *tokenize(code) {
   let state = { mode: 'main' };
   let index = 0;
   while (index < code.length) {
@@ -62,7 +61,7 @@ export default function tokenize(code) {
     for (let i = 0; i < results.length; ++i) {
       let result = results[i][1](results[i][0], state);
       if (result !== undefined) {
-        output.push(result);
+        yield result;
         index = results[i][0][0].length + index;
         next = true;
         break;
@@ -72,5 +71,4 @@ export default function tokenize(code) {
       index = results[results.length - 1][0][0].length + index;
     }
   }
-  return output;
 }
