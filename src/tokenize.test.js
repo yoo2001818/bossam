@@ -1,3 +1,4 @@
+import fs from 'fs';
 import tokenize from './tokenize';
 
 describe('tokenize', () => {
@@ -19,5 +20,8 @@ describe('tokenize', () => {
       { type: 'commentBlock' },
       { type: 'commentBlockEnd' },
     ]);
+  });
+  it('should parse test code', () => {
+    tokenize(fs.readFileSync('./test.jsbyte', 'utf-8'));
   });
 });

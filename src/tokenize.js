@@ -1,4 +1,5 @@
 const Token = (type) => () => ({ type });
+const NameToken = (type) => (match) => ({ type, name: match[1] });
 const SwitchToken = (type, mode) => (match, state) => {
   state.mode = mode;
   return { type };
@@ -9,6 +10,21 @@ const SYNTAX_TABLE = {
   main: [
     [/\/\/.*$/gm, Token('commentLine')],
     [/\/\*/g, SwitchToken('commentBlock', 'commentBlock')],
+    [/([a-zA-Z_$][a-zA-Z0-9_$]*)/g, NameToken('keyword')],
+    // Only numbers are supported.
+    [/(\d+)/g, NameToken('number')],
+    [/\(/g, Token('parenOpen')],
+    [/\)/g, Token('parenClose')],
+    [/\{/g, Token('curlyOpen')],
+    [/\}/g, Token('curlyClose')],
+    [/</g, Token('angleOpen')],
+    [/>/g, Token('angleClose')],
+    [/\[/g, Token('squareOpen')],
+    [/\]/g, Token('squareClose')],
+    [/,/g, Token('comma')],
+    [/\./g, Token('period')],
+    [/:/g, Token('colon')],
+    [/;/g, Token('semicolon')],
     [/\s+/g, NoOp],
   ],
   commentBlock: [
