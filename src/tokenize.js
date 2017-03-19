@@ -10,6 +10,8 @@ const SYNTAX_TABLE = {
   main: [
     [/\/\/.*$/gm, NoOp],
     [/\/\*/g, SwitchNoOp('commentBlock')],
+    [/enum(?![a-zA-Z_$0-9])/g, Token('enum')],
+    [/struct(?![a-zA-Z_$0-9])/g, Token('struct')],
     [/([a-zA-Z_$][a-zA-Z0-9_$]*)/g, NameToken('keyword')],
     // Only numbers are supported.
     [/(\d+)/g, NameToken('number')],
