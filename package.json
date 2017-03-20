@@ -1,5 +1,5 @@
 {
-  "name": "js-to-byte",
+  "name": "serializejs",
   "version": "0.1.0",
   "description": "JavaScript object serialization library with Rust-like DSL",
   "main": "index.js",
@@ -16,14 +16,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yoo2001818/js-to-byte.git"
+    "url": "git+https://github.com/yoo2001818/serializejs.git"
   },
   "author": "yoo2001818",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/yoo2001818/js-to-byte/issues"
+    "url": "https://github.com/yoo2001818/serializejs/issues"
   },
-  "homepage": "https://github.com/yoo2001818/js-to-byte#readme",
+  "homepage": "https://github.com/yoo2001818/serializejs#readme",
   "dependencies": {
   },
   "devDependencies": {
