@@ -31,7 +31,7 @@ function pullIf(state, type, then) {
     state.push(token);
     return false;
   }
-  then(state, token);
+  if (then != null) then(state, token);
   return token;
 }
 
@@ -55,14 +55,32 @@ function defineStruct(state) {
   match(state, {
     curlyOpen: () => {
       data.type = 'structObject';
-      pull(state, 'curlyClose');
+      data.values = {};
+      data.keys = [];
+      let exited = false;
+      function next() {
+        // If curlyClose is reached, escape!
+        if (pullIf(state, 'curlyClose')) {
+          exited = true;
+          return;
+        }
+        let name = pull(state, 'keyword').name;
+        pull(state, 'colon');
+        let type = getType(state);
+        data.keys.push(name);
+        data.values[name] = type;
+        pullIf(state, 'comma', next);
+      }
+      next();
+      console.log(data);
+      if (!exited) pull(state, 'curlyClose');
     },
     parenOpen: () => {
       data.type = 'structArray';
       // Quite simple, since we just need to accept keywords again and again.
       data.keys = [];
       function next() {
-        data.keys.push(getName(state));
+        data.keys.push(getType(state));
         pullIf(state, 'comma', next);
       }
       next();
@@ -73,6 +91,10 @@ function defineStruct(state) {
       console.log(data);
     },
   });
+}
+
+function getType(state) {
+  return getName(state);
 }
 
 function getName(state) {
