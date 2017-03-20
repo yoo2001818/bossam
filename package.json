@@ -1,5 +1,5 @@
 {
-  "name": "serializejs",
+  "name": "bossam",
   "version": "0.1.0",
   "description": "JavaScript object serialization library with Rust-like DSL",
   "main": "index.js",
@@ -16,14 +16,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yoo2001818/serializejs.git"
+    "url": "git+https://github.com/yoo2001818/bossam.git"
   },
   "author": "yoo2001818",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/yoo2001818/serializejs/issues"
+    "url": "https://github.com/yoo2001818/bossam/issues"
   },
-  "homepage": "https://github.com/yoo2001818/serializejs#readme",
+  "homepage": "https://github.com/yoo2001818/bossam#readme",
   "dependencies": {
   },
   "devDependencies": {
