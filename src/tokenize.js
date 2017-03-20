@@ -13,8 +13,13 @@ const SYNTAX_TABLE = {
     [/enum(?![a-zA-Z_$0-9])/g, Token('enum')],
     [/struct(?![a-zA-Z_$0-9])/g, Token('struct')],
     [/([a-zA-Z_$][a-zA-Z0-9_$]*)/g, NameToken('keyword')],
-    // Only numbers are supported.
-    [/(\d+)/g, NameToken('number')],
+    // Only numbers are supported. Expressions like 10e3 is not supported, yet.
+    [/[-+]?0x[0-9a-fA-F]+/g,
+      (match) => ({ type: 'number', value: parseInt(match[0]) })],
+    [/[-+]?(\d+)(\.\d+)?/g,
+      (match) => ({ type: 'number', value: parseFloat(match[0]) })],
+    [/"((?:.|\n|\\")+)"/g,
+      (match) => ({ type: 'string', value: match[1].replace(/\\"/g, '"') })],
     [/\(/g, Token('parenOpen')],
     [/\)/g, Token('parenClose')],
     [/\{/g, Token('curlyOpen')],
