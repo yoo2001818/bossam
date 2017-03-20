@@ -45,28 +45,47 @@ function main(state) {
 }
 
 function defineEnum(state) {
-  let name = defineName(state);
+  let name = getName(state);
   pull(state, 'curlyOpen');
   pull(state, 'curlyClose');
 }
 
 function defineStruct(state) {
-  let name = defineName(state);
-  pull(state, 'curlyOpen');
-  pull(state, 'curlyClose');
+  let data = getName(state);
+  match(state, {
+    curlyOpen: () => {
+      data.type = 'structObject';
+      pull(state, 'curlyClose');
+    },
+    parenOpen: () => {
+      data.type = 'structArray';
+      // Quite simple, since we just need to accept keywords again and again.
+      data.keys = [];
+      function next() {
+        data.keys.push(getName(state));
+        pullIf(state, 'comma', next);
+      }
+      next();
+      // Close the paren...
+      pull(state, 'parenClose');
+      // And expect a semicolon
+      pull(state, 'semicolon');
+      console.log(data);
+    },
+  });
 }
 
-function defineName(state) {
+function getName(state) {
   let data = {};
   // Get keyword.
-  data.name = pull(state, 'keyword');
+  data.name = pull(state, 'keyword').name;
   // Support generics - continue if we have generics.
   // We're suddenly using continuation-passing style. I'm not sure why.
   pullIf(state, 'angleOpen', (state, token) => {
     data.generics = [];
     function next() {
       // Receive a keyword...
-      data.generics.push(pull(state, 'keyword'));
+      data.generics.push(pull(state, 'keyword').name);
       // Continue to next if comma is provided
       pullIf(state, 'comma', next);
     }
