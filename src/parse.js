@@ -57,6 +57,7 @@ function defineEnum(state) {
     }
     pull(state, 'parenClose');
   }
+  data.namespace = {};
   pull(state, 'curlyOpen');
   // Now, pull each character.
   function next(state) {
@@ -65,26 +66,69 @@ function defineEnum(state) {
       exited = true;
       return;
     }
-    let key;
+    let key, strategy;
     // We have to choose strategy.
     match(state, {
       number: (state, token) => {
-        data.strategy = 'match';
+        strategy = 'match';
         key = token.value;
       },
       string: (state, token) => {
-        data.strategy = 'object';
+        strategy = 'object';
         key = token.value;
       },
       keyword: (state, token) => {
         // Just continue
-        data.strategy = 'array';
+        strategy = 'array';
         key = index++;
         state.push(token);
       },
     });
     // Now, pull the struct.
     let value = defineStruct(state, true);
+    // Enforce the type mode.
+    let dataType = null;
+    switch (value.type) {
+      case 'structObject':
+        dataType = 'enumObject';
+        break;
+      case 'structArray':
+        dataType = 'enumArray';
+        break;
+    }
+    if (data.type != null && dataType != null && data.type !== dataType) {
+      throw new Error('Enum data type can\'t be mixed');
+    }
+    data.type = dataType;
+    if (data.strategy == null) {
+      data.strategy = strategy;
+      // Set up indexes
+      switch (strategy) {
+        case 'match':
+          data.entries = [];
+          break;
+        case 'object':
+          data.entries = {};
+          break;
+        case 'array':
+          data.entries = [];
+          break;
+      }
+    } else if (data.strategy !== strategy) {
+      throw new Error('Enum indexing type can\'t be mixed');
+    }
+    data.namespace[getIdentifier(value)] = value;
+    switch (strategy) {
+      case 'match':
+        data.entries.push([key, value]);
+        break;
+      case 'object':
+        data.entries[key] = value;
+        break;
+      case 'array':
+        data.entries.push(value);
+        break;
+    }
     pullIf(state, 'comma', next);
   }
   next();
@@ -98,6 +142,7 @@ function defineStruct(state, allowEmpty = false) {
       // Just push the token and return the data.
       state.push(token);
       data.type = 'structEmpty';
+      data.keys = [];
     }),
     curlyOpen: () => {
       data.type = 'structObject';
@@ -134,11 +179,6 @@ function defineStruct(state, allowEmpty = false) {
       pull(state, 'parenClose');
       // And expect a semicolon
       pull(state, 'semicolon');
-      // Change to structSingle if array size is 1?
-      if (data.keys.length === 1) {
-        data.type = 'structSingle';
-        data.key = data.keys[0];
-      }
       console.log(data);
     },
   });
@@ -151,6 +191,11 @@ function getType(state) {
 
 function getVariable(state) {
   return getName(state);
+}
+
+function getIdentifier(data) {
+  if (data.generics == null) return data.name;
+  return data.name + '<' + data.generics.map(() => '_').join(',') + '>';
 }
 
 function getName(state) {
