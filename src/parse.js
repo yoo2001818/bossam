@@ -4,6 +4,7 @@ function match(state, matches) {
   let type = token === null ? 'null' : token.type;
   let matched = matches[type];
   if (matched == null) {
+    if (matches.else != null) return matches.else(state, token);
     throw new Error('Token error; Expected ' +
       Object.keys(matches).join(',') + ', But received ' + type
     );
@@ -45,14 +46,59 @@ function main(state) {
 }
 
 function defineEnum(state) {
-  let name = getName(state);
+  let data = getName(state);
+  let exited = false;
+  let index = 0;
+  // Pull enum target for structs
+  if (pullIf(state, 'parenOpen')) {
+    data.typeTarget = getVariable(state);
+    if (pullIf(state, 'comma')) {
+      data.typeType = getType(state);
+    }
+    pull(state, 'parenClose');
+  }
   pull(state, 'curlyOpen');
-  pull(state, 'curlyClose');
+  // Now, pull each character.
+  function next(state) {
+    // If curlyClose is reached, escape!
+    if (pullIf(state, 'curlyClose')) {
+      exited = true;
+      return;
+    }
+    let key;
+    // We have to choose strategy.
+    match(state, {
+      number: (state, token) => {
+        data.strategy = 'match';
+        key = token.value;
+      },
+      string: (state, token) => {
+        data.strategy = 'object';
+        key = token.value;
+      },
+      keyword: (state, token) => {
+        // Just continue
+        data.strategy = 'array';
+        key = index++;
+        state.push(token);
+      },
+    });
+    // Now, pull the struct.
+    let value = defineStruct(state, true);
+    pullIf(state, 'comma', next);
+  }
+  next();
+  if (!exited) pull(state, 'curlyClose');
 }
 
-function defineStruct(state) {
+function defineStruct(state, allowEmpty = false) {
   let data = getName(state);
   match(state, {
+    else: allowEmpty && ((state, token) => {
+      // Just push the token and return the data.
+      state.push(token);
+      data.type = 'structEmpty';
+    }),
     curlyOpen: () => {
       data.type = 'structObject';
       data.values = {};
@@ -64,7 +110,7 @@ function defineStruct(state) {
           exited = true;
           return;
         }
-        let name = pull(state, 'keyword').name;
+        let name = getVariable(state);
         pull(state, 'colon');
         let type = getType(state);
         data.keys.push(name);
@@ -88,12 +134,22 @@ function defineStruct(state) {
       pull(state, 'parenClose');
       // And expect a semicolon
       pull(state, 'semicolon');
+      // Change to structSingle if array size is 1?
+      if (data.keys.length === 1) {
+        data.type = 'structSingle';
+        data.key = data.keys[0];
+      }
       console.log(data);
     },
   });
+  return data;
 }
 
 function getType(state) {
+  return getName(state);
+}
+
+function getVariable(state) {
   return getName(state);
 }
 
@@ -103,7 +159,7 @@ function getName(state) {
   data.name = pull(state, 'keyword').name;
   // Support generics - continue if we have generics.
   // We're suddenly using continuation-passing style. I'm not sure why.
-  pullIf(state, 'angleOpen', (state, token) => {
+  pullIf(state, 'angleOpen', (state) => {
     data.generics = [];
     function next() {
       // Receive a keyword...
