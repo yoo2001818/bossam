@@ -18,7 +18,7 @@ const SYNTAX_TABLE = {
       (match) => ({ type: 'number', value: parseInt(match[0]) })],
     [/[-+]?(\d+)(\.\d+)?/g,
       (match) => ({ type: 'number', value: parseFloat(match[0]) })],
-    [/"((?:.|\n|\\")+)"/g,
+    [/"((?:[^"\\]|\n|\\\\|\\")+)"/g,
       (match) => ({ type: 'string', value: match[1].replace(/\\"/g, '"') })],
     [/=>/g, Token('arrow')],
     [/\(/g, Token('parenOpen')],

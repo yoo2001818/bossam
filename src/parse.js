@@ -60,7 +60,7 @@ function defineEnum(state) {
   data.namespace = {};
   pull(state, 'curlyOpen');
   // Now, pull each character.
-  function next(state) {
+  function next() {
     // If curlyClose is reached, escape!
     if (pullIf(state, 'curlyClose')) {
       exited = true;
@@ -72,10 +72,12 @@ function defineEnum(state) {
       number: (state, token) => {
         strategy = 'match';
         key = token.value;
+        pull(state, 'arrow');
       },
       string: (state, token) => {
         strategy = 'object';
         key = token.value;
+        pull(state, 'arrow');
       },
       keyword: (state, token) => {
         // Just continue
@@ -118,6 +120,7 @@ function defineEnum(state) {
       throw new Error('Enum indexing type can\'t be mixed');
     }
     data.namespace[getIdentifier(value)] = value;
+    value.enumKey = key;
     switch (strategy) {
       case 'match':
         data.entries.push([key, value]);
@@ -132,6 +135,8 @@ function defineEnum(state) {
     pullIf(state, 'comma', next);
   }
   next();
+  if (data.type == null) data.type = 'enumEmpty';
+  console.log(data);
   if (!exited) pull(state, 'curlyClose');
 }
 
@@ -178,7 +183,7 @@ function defineStruct(state, allowEmpty = false) {
       // Close the paren...
       pull(state, 'parenClose');
       // And expect a semicolon
-      pull(state, 'semicolon');
+      pullIf(state, 'semicolon');
       console.log(data);
     },
   });
@@ -190,7 +195,7 @@ function getType(state) {
 }
 
 function getVariable(state) {
-  return getName(state);
+  return getName(state).name;
 }
 
 function getIdentifier(data) {
@@ -216,7 +221,6 @@ function getName(state) {
     // Digest angleClose
     pull(state, 'angleClose');
   });
-  console.log(data);
   return data;
 }
 
