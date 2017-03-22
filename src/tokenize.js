@@ -21,6 +21,7 @@ const SYNTAX_TABLE = {
     [/"((?:[^"\\]|\n|\\\\|\\")+)"/g,
       (match) => ({ type: 'string', value: match[1].replace(/\\"/g, '"') })],
     [/=>/g, Token('arrow')],
+    [/=/g, Token('equal')],
     [/\(/g, Token('parenOpen')],
     [/\)/g, Token('parenClose')],
     [/\{/g, Token('curlyOpen')],

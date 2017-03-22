@@ -7,7 +7,7 @@ enum Message(type) {
   Leave,
 }
 
-struct MessageContainer(checksum: u8, message: Message);
+struct MessageContainer(u8, Message);
 
 struct Packet {
   sender: (i32, str),

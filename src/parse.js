@@ -191,7 +191,37 @@ function defineStruct(state, allowEmpty = false) {
 }
 
 function getType(state) {
-  return getName(state);
+  // Read keyword or paren. If paren is specified, that means a tuple is
+  // specified.
+  return match(state, {
+    keyword: (state, token) => {
+      // Just process as name. :P
+      state.push(token);
+      return getName(state);
+    },
+    parenOpen: (state) => {
+      // Process tuple.
+      let result = [];
+      function next() {
+        // Receive a keyword...
+        result.push(getType(state));
+        // Continue to next if comma is provided
+        pullIf(state, 'comma', next);
+      }
+      next();
+      pull(state, 'parenClose');
+      return { name: 'Tuple', tuple: true, values: result };
+    },
+    squareOpen: (state) => {
+      let data = getType(state);
+      pull(state, 'semicolon');
+      match(state, {
+        number: (state, token) => data.size = token.value,
+        keyword: (state, token) => data.size = token.value,
+      });
+      pull(state, 'squareClose');
+    },
+  });
 }
 
 function getVariable(state) {
@@ -213,7 +243,7 @@ function getName(state) {
     data.generics = [];
     function next() {
       // Receive a keyword...
-      data.generics.push(pull(state, 'keyword').name);
+      data.generics.push(getName(state));
       // Continue to next if comma is provided
       pullIf(state, 'comma', next);
     }
