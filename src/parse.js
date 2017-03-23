@@ -195,9 +195,22 @@ function getType(state) {
   // specified.
   return match(state, {
     keyword: (state, token) => {
-      // Just process as name. :P
-      state.push(token);
-      return getName(state);
+      // If the next token is period, that means a namespace is specified,
+      // so resolve it. However, since only 1 level is supported for now,
+      // we can just check single level.
+      return match(state, {
+        else: (state, tokenNext) => {
+          // Restore tokens, then just process as name. :P
+          state.push(token);
+          state.push(tokenNext);
+          return getName(state);
+        },
+        period: (state) => {
+          let data = getName(state);
+          data.name = [token.name, data.name];
+          return data;
+        },
+      });
     },
     parenOpen: (state) => {
       // Process tuple.
@@ -210,16 +223,18 @@ function getType(state) {
       }
       next();
       pull(state, 'parenClose');
-      return { name: 'Tuple', tuple: true, values: result };
+      return result;
     },
     squareOpen: (state) => {
-      let data = getType(state);
+      let data = { array: true };
+      data.type = getType(state);
       pull(state, 'semicolon');
       match(state, {
         number: (state, token) => data.size = token.value,
-        keyword: (state, token) => data.size = token.value,
+        keyword: (state, token) => data.size = token.name,
       });
       pull(state, 'squareClose');
+      return data;
     },
   });
 }
