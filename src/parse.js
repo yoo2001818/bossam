@@ -52,7 +52,7 @@ function main(state) {
 }
 
 function defineEnum(state) {
-  let data = getName(state);
+  let data = getName(state, null, true);
   let exited = false;
   let index = 0;
   // Pull enum target for structs
@@ -147,12 +147,13 @@ function defineEnum(state) {
 }
 
 function defineStruct(state, allowEmpty = false, parentGenerics) {
-  let data;
+  let data, generics;
   if (parentGenerics != null) {
-    data = getName(state, parentGenerics);
-    data.generics = parentGenerics;
+    data = getName(state, parentGenerics, true);
+    generics = parentGenerics;
   } else {
-    data = getName(state);
+    data = getName(state, null, true);
+    generics = data.generics;
   }
   return match(state, {
     else: allowEmpty && ((state, token) => {
@@ -171,7 +172,7 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
         state.push(token);
         let name = getVariable(state);
         pull(state, 'colon');
-        let type = getType(state, data.generics);
+        let type = getType(state, generics);
         data.keys.push(name);
         data.values[name] = type;
         return pullIf(state, 'comma', next);
@@ -179,7 +180,7 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
       function processValue(state, token) {
         let value = token.value;
         pull(state, 'colon');
-        let type = getType(state, data.generics);
+        let type = getType(state, generics);
         // Don't put it in values.
         data.keys.push({ const: true, type, value });
         return pullIf(state, 'comma', next);
@@ -206,14 +207,14 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
       data.keys = [];
       function processKeyword(state, token) {
         state.push(token);
-        data.keys.push(getType(state, data.generics));
+        data.keys.push(getType(state, generics));
         return pullIf(state, 'comma', next);
       }
       function processValue(state, token) {
         let value = token.value;
         // Use colons to save types, as both value and type must be provided
         pull(state, 'colon');
-        let type = getType(state, data.generics);
+        let type = getType(state, generics);
         // Don't put it in values.
         data.keys.push({ const: true, type, value });
         return pullIf(state, 'comma', next);
@@ -293,7 +294,7 @@ function getIdentifier(data) {
   return data.name + '<' + data.generics.map(() => '_').join(',') + '>';
 }
 
-function getName(state, generics) {
+function getName(state, generics, define) {
   let data = {};
   // Get keyword.
   data.name = pull(state, 'keyword').name;
@@ -312,9 +313,13 @@ function getName(state, generics) {
     function next() {
       match(state, {
         keyword: (state, token) => {
-          state.push(token);
-          // Receive a keyword...
-          data.generics.push(getType(state));
+          if (define) {
+            // If in define mode, use a single keyword.
+            data.generics.push(token.name);
+          } else {
+            state.push(token);
+            data.generics.push(getType(state, generics));
+          }
         },
         // These two are absurd, however, it is required to specify string's
         // encoding and size.
@@ -352,6 +357,6 @@ export default function parse(tokenizer) {
   // Read each line and process. Since this uses JS's own stack, it'd be really
   // simple to describe the language.
   main(state);
-  console.log(state.namespace);
+  console.log(JSON.stringify(state.namespace, null, 2));
   return state;
 }

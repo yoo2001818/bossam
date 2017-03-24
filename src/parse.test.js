@@ -48,6 +48,7 @@ describe('parse', () => {
     parse(tokenize('struct Test<A, B, C> {}'));
     parse(tokenize('struct Test<A> {}'));
     expect(() => parse(tokenize('struct Test<A,> {}'))).toThrow();
+    parse(tokenize('enum Test<A, B, C> {A, B, C,}'));
   });
   it('should parse test code', () => {
     parse(tokenize(fs.readFileSync('./test.jsbyte', 'utf-8')));
