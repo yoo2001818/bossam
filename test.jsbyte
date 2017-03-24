@@ -3,19 +3,34 @@
 // If enum is an array, 0th index will be used as a type.
 enum Message(type) {
   Join,
-  Chat { message: str },
+  Chat { message: String },
   Leave,
 }
 
 struct MessageContainer(u8, Message);
 
 struct Packet {
-  sender: (i32, str),
+  // This is used to check magic numbers. It only supports big endian - as
+  // using little endian to check file sequence doesn't make sense at all.
+  0xDEADCAFE: i32,
+  // A UTF-8 byte sequence can be used too. As the text size is static,
+  // str can be used too (String length won't be used)
+  // If unspecified, utf-8 will be used. Other charsets can be provided, if
+  // TextDecoder supports it.
+  "PNG": str<"utf-8">,
+  "PNG": str<"utf-16le">,
+  // u32 will be used to write string size.
+  "PNG": String<"utf-16le">,
+  // Unlike Rust, char represents single UTF-16 character - not a code point!
+  parity: char,
+  sender: (i32, String),
   time: u64,
   size: u8,
   // size must be known before messages
   messages: [Message; size],
-  checksum: str,
+  checksum: String,
+  checksumSize: u16,
+  checksum2: str<"utf-8", checksumSize>,
 }
 
 struct LeavePacket {
