@@ -161,18 +161,34 @@ function defineStruct(state, allowEmpty = false) {
       data.values = {};
       data.keys = [];
       let exited = false;
+      function processKeyword(state, token) {
+        state.push(token);
+        let name = getVariable(state);
+        pull(state, 'colon');
+        let type = getType(state);
+        data.keys.push(name);
+        data.values[name] = type;
+        return pullIf(state, 'comma', next);
+      }
+      function processValue(state, token) {
+        let value = token.value;
+        pull(state, 'colon');
+        let type = getType(state);
+        // Don't put it in values.
+        data.keys.push({ const: true, type, value });
+        return pullIf(state, 'comma', next);
+      }
       function next() {
         // If curlyClose is reached, escape!
         if (pullIf(state, 'curlyClose')) {
           exited = true;
           return;
         }
-        let name = getVariable(state);
-        pull(state, 'colon');
-        let type = getType(state);
-        data.keys.push(name);
-        data.values[name] = type;
-        pullIf(state, 'comma', next);
+        return match(state, {
+          keyword: processKeyword,
+          string: processValue,
+          number: processValue,
+        });
       }
       next();
       if (!exited) pull(state, 'curlyClose');
@@ -263,8 +279,21 @@ function getName(state) {
   pullIf(state, 'angleOpen', (state) => {
     data.generics = [];
     function next() {
-      // Receive a keyword...
-      data.generics.push(getName(state));
+      match(state, {
+        keyword: (state, token) => {
+          state.push(token);
+          // Receive a keyword...
+          data.generics.push(getType(state));
+        },
+        // These two are absurd, however, it is required to specify string's
+        // encoding and size.
+        string: (state, token) => {
+          data.generics.push({ const: true, value: token.value });
+        },
+        number: (state, token) => {
+          data.generics.push({ const: true, value: token.value });
+        },
+      });
       // Continue to next if comma is provided
       pullIf(state, 'comma', next);
     }
