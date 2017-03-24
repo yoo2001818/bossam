@@ -59,7 +59,7 @@ function defineEnum(state) {
   if (pullIf(state, 'parenOpen')) {
     data.typeTarget = getVariable(state);
     if (pullIf(state, 'comma')) {
-      data.typeType = getType(state);
+      data.typeType = getType(state, data.generics);
     }
     pull(state, 'parenClose');
   }
@@ -93,7 +93,7 @@ function defineEnum(state) {
       },
     });
     // Now, pull the struct.
-    let value = defineStruct(state, true);
+    let value = defineStruct(state, true, data.generics);
     // Enforce the type mode.
     let dataType = null;
     switch (value.type) {
@@ -146,8 +146,14 @@ function defineEnum(state) {
   return data;
 }
 
-function defineStruct(state, allowEmpty = false) {
-  let data = getName(state);
+function defineStruct(state, allowEmpty = false, parentGenerics) {
+  let data;
+  if (parentGenerics != null) {
+    data = getName(state, parentGenerics);
+    data.generics = parentGenerics;
+  } else {
+    data = getName(state);
+  }
   return match(state, {
     else: allowEmpty && ((state, token) => {
       // Just push the token and return the data.
@@ -165,7 +171,7 @@ function defineStruct(state, allowEmpty = false) {
         state.push(token);
         let name = getVariable(state);
         pull(state, 'colon');
-        let type = getType(state);
+        let type = getType(state, data.generics);
         data.keys.push(name);
         data.values[name] = type;
         return pullIf(state, 'comma', next);
@@ -173,7 +179,7 @@ function defineStruct(state, allowEmpty = false) {
       function processValue(state, token) {
         let value = token.value;
         pull(state, 'colon');
-        let type = getType(state);
+        let type = getType(state, data.generics);
         // Don't put it in values.
         data.keys.push({ const: true, type, value });
         return pullIf(state, 'comma', next);
@@ -200,14 +206,14 @@ function defineStruct(state, allowEmpty = false) {
       data.keys = [];
       function processKeyword(state, token) {
         state.push(token);
-        data.keys.push(getType(state));
+        data.keys.push(getType(state, data.generics));
         return pullIf(state, 'comma', next);
       }
       function processValue(state, token) {
         let value = token.value;
         // Use colons to save types, as both value and type must be provided
         pull(state, 'colon');
-        let type = getType(state);
+        let type = getType(state, data.generics);
         // Don't put it in values.
         data.keys.push({ const: true, type, value });
         return pullIf(state, 'comma', next);
@@ -229,7 +235,7 @@ function defineStruct(state, allowEmpty = false) {
   });
 }
 
-function getType(state) {
+function getType(state, generics) {
   // Read keyword or paren. If paren is specified, that means a tuple is
   // specified.
   return match(state, {
@@ -242,10 +248,10 @@ function getType(state) {
           // Restore tokens, then just process as name. :P
           state.push(token);
           state.push(tokenNext);
-          return getName(state);
+          return getName(state, generics);
         },
         period: (state) => {
-          let data = getName(state);
+          let data = getName(state, generics);
           data.name = [token.name, data.name];
           return data;
         },
@@ -256,7 +262,7 @@ function getType(state) {
       let result = [];
       function next() {
         // Receive a keyword...
-        result.push(getType(state));
+        result.push(getType(state, generics));
         // Continue to next if comma is provided
         pullIf(state, 'comma', next);
       }
@@ -266,7 +272,7 @@ function getType(state) {
     },
     squareOpen: (state) => {
       let data = { array: true };
-      data.type = getType(state);
+      data.type = getType(state, generics);
       pull(state, 'semicolon');
       match(state, {
         number: (state, token) => data.size = token.value,
@@ -287,10 +293,18 @@ function getIdentifier(data) {
   return data.name + '<' + data.generics.map(() => '_').join(',') + '>';
 }
 
-function getName(state) {
+function getName(state, generics) {
   let data = {};
   // Get keyword.
   data.name = pull(state, 'keyword').name;
+  if (generics != null) {
+    let genericIndex = generics.indexOf(data.name);
+    if (genericIndex !== -1) {
+      data.generic = true;
+      data.name = genericIndex;
+    }
+    return data;
+  }
   // Support generics - continue if we have generics.
   // We're suddenly using continuation-passing style. I'm not sure why.
   pullIf(state, 'angleOpen', (state) => {
