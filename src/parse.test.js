@@ -51,6 +51,6 @@ describe('parse', () => {
     parse(tokenize('enum Test<A, B, C> {A, B, C,}'));
   });
   it('should parse test code', () => {
-    parse(tokenize(fs.readFileSync('./test.jsbyte', 'utf-8')));
+    parse(tokenize(fs.readFileSync('./test.bsm', 'utf-8')));
   });
 });

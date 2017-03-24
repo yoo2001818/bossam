@@ -30,6 +30,6 @@ describe('tokenize', () => {
     }]);
   });
   it('should parse test code', () => {
-    [...tokenize(fs.readFileSync('./test.jsbyte', 'utf-8'))];
+    [...tokenize(fs.readFileSync('./test.bsm', 'utf-8'))];
   });
 });
