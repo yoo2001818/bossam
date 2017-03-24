@@ -40,8 +40,14 @@ function main(state) {
   // Loop until we meet null. This looks awkward, but this'll do.
   while (match(state, {
     null: () => false,
-    enum: defineEnum,
-    struct: defineStruct,
+    enum: (state) => {
+      let data = defineEnum(state);
+      state.namespace[getIdentifier(data)] = data;
+    },
+    struct: (state) => {
+      let data = defineStruct(state);
+      state.namespace[getIdentifier(data)] = data;
+    },
   }) !== false);
 }
 
@@ -136,18 +142,19 @@ function defineEnum(state) {
   }
   next();
   if (data.type == null) data.type = 'enumEmpty';
-  console.log(data);
   if (!exited) pull(state, 'curlyClose');
+  return data;
 }
 
 function defineStruct(state, allowEmpty = false) {
   let data = getName(state);
-  match(state, {
+  return match(state, {
     else: allowEmpty && ((state, token) => {
       // Just push the token and return the data.
       state.push(token);
       data.type = 'structEmpty';
       data.keys = [];
+      return data;
     }),
     curlyOpen: () => {
       data.type = 'structObject';
@@ -168,8 +175,8 @@ function defineStruct(state, allowEmpty = false) {
         pullIf(state, 'comma', next);
       }
       next();
-      console.log(data);
       if (!exited) pull(state, 'curlyClose');
+      return data;
     },
     parenOpen: () => {
       data.type = 'structArray';
@@ -184,10 +191,9 @@ function defineStruct(state, allowEmpty = false) {
       pull(state, 'parenClose');
       // And expect a semicolon
       pullIf(state, 'semicolon');
-      console.log(data);
+      return data;
     },
   });
-  return data;
 }
 
 function getType(state) {
@@ -240,7 +246,7 @@ function getType(state) {
 }
 
 function getVariable(state) {
-  return getName(state).name;
+  return pull(state, 'keyword').name;
 }
 
 function getIdentifier(data) {
@@ -270,7 +276,7 @@ function getName(state) {
 }
 
 export default function parse(tokenizer) {
-  let state = { next, push, lookahead: [] };
+  let state = { next, push, lookahead: [], namespace: {} };
   function next() {
     if (state.lookahead.length > 0) {
       return state.lookahead.shift();
@@ -286,5 +292,6 @@ export default function parse(tokenizer) {
   // Read each line and process. Since this uses JS's own stack, it'd be really
   // simple to describe the language.
   main(state);
+  console.log(state.namespace);
   return state;
 }
