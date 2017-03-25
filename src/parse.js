@@ -298,7 +298,7 @@ function getName(state, generics, define) {
   let data = {};
   // Get keyword.
   data.name = pull(state, 'keyword').name;
-  if (generics != null) {
+  if (generics != null && !define) {
     let genericIndex = generics.indexOf(data.name);
     if (genericIndex !== -1) {
       data.generic = true;
@@ -358,5 +358,5 @@ export default function parse(tokenizer) {
   // simple to describe the language.
   main(state);
   console.log(JSON.stringify(state.namespace, null, 2));
-  return state;
+  return state.namespace;
 }

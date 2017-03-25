@@ -16,6 +16,7 @@ describe('parse', () => {
     parse(tokenize('enum Test { Hello, World, This, }'));
     parse(tokenize('enum Test(i32) { Hello, World, This, }'));
     parse(tokenize('enum Test(i32) { 0 => Hello, 1 => World, 32 => This }'));
+    expect(() => parse(tokenize('enum Test {A(i32), B {a: i32}}'))).toThrow();
     parse(tokenize(`
       enum Test {
         Hello(i32, u32, u32),
@@ -44,11 +45,70 @@ describe('parse', () => {
       }
     `));
   });
+  it('should parse fixed values', () => {
+    parse(tokenize(`
+      struct Test {
+        "Hello": str<"utf-8">,
+        abcd: str,
+        0x123: i32,
+        efgh: str,
+        5353: i16,
+        ijkl: str,
+      }
+    `));
+  });
   it('should parse generics', () => {
     parse(tokenize('struct Test<A, B, C> {}'));
     parse(tokenize('struct Test<A> {}'));
     expect(() => parse(tokenize('struct Test<A,> {}'))).toThrow();
-    parse(tokenize('enum Test<A, B, C> {A, B, C,}'));
+  });
+  it('should parse generics in enums correctly', () => {
+    let namespace = {
+      A: {
+        name: 'A',
+        type: 'structArray',
+        keys: [{
+          name: 0,
+          generic: true,
+        }],
+        enumKey: 0,
+      },
+      B: {
+        name: 'B',
+        type: 'structArray',
+        keys: [{
+          name: 1,
+          generic: true,
+        }],
+        enumKey: 1,
+      },
+      C: {
+        name: 'C',
+        type: 'structArray',
+        keys: [{
+          name: 2,
+          generic: true,
+        }],
+        enumKey: 2,
+      },
+    };
+    let entries = Object.keys(namespace).map(v => namespace[v]);
+    expect(parse(tokenize(`
+      enum Test<A, B, C> {
+        A(A),
+        B(B),
+        C(C),
+      }
+    `))).toEqual({
+      'Test<_,_,_>': {
+        name: 'Test',
+        generics: ['A', 'B', 'C'],
+        type: 'enumArray',
+        strategy: 'array',
+        namespace,
+        entries,
+      },
+    });
   });
   it('should parse test code', () => {
     parse(tokenize(fs.readFileSync('./test.bsm', 'utf-8')));
