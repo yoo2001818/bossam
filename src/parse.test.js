@@ -66,7 +66,8 @@ describe('parse', () => {
     let namespace = {
       A: {
         name: 'A',
-        type: 'structArray',
+        type: 'struct',
+        subType: 'array',
         keys: [{
           name: 0,
           generic: true,
@@ -75,7 +76,8 @@ describe('parse', () => {
       },
       B: {
         name: 'B',
-        type: 'structArray',
+        type: 'struct',
+        subType: 'array',
         keys: [{
           name: 1,
           generic: true,
@@ -84,7 +86,8 @@ describe('parse', () => {
       },
       C: {
         name: 'C',
-        type: 'structArray',
+        type: 'struct',
+        subType: 'array',
         keys: [{
           name: 2,
           generic: true,
@@ -103,7 +106,8 @@ describe('parse', () => {
       'Test<_,_,_>': {
         name: 'Test',
         generics: ['A', 'B', 'C'],
-        type: 'enumArray',
+        type: 'enum',
+        subType: 'array',
         strategy: 'array',
         namespace,
         entries,

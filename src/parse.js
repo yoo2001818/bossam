@@ -63,6 +63,7 @@ function defineEnum(state) {
     }
     pull(state, 'parenClose');
   }
+  data.type = 'enum';
   data.namespace = {};
   pull(state, 'curlyOpen');
   // Now, pull each character.
@@ -95,19 +96,12 @@ function defineEnum(state) {
     // Now, pull the struct.
     let value = defineStruct(state, true, data.generics);
     // Enforce the type mode.
-    let dataType = null;
-    switch (value.type) {
-      case 'structObject':
-        dataType = 'enumObject';
-        break;
-      case 'structArray':
-        dataType = 'enumArray';
-        break;
+    if (value.subType !== 'empty') {
+      if (data.subType != null && data.subType !== value.subType) {
+        throw new Error('Enum data type can\'t be mixed');
+      }
+      data.subType = value.subType;
     }
-    if (data.type != null && dataType != null && data.type !== dataType) {
-      throw new Error('Enum data type can\'t be mixed');
-    }
-    data.type = dataType;
     if (data.strategy == null) {
       data.strategy = strategy;
       // Set up indexes
@@ -141,7 +135,7 @@ function defineEnum(state) {
     pullIf(state, 'comma', next);
   }
   next();
-  if (data.type == null) data.type = 'enumEmpty';
+  if (data.subType == null) data.subType = 'empty';
   if (!exited) pull(state, 'curlyClose');
   return data;
 }
@@ -155,16 +149,17 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
     data = getName(state, null, true);
     generics = data.generics;
   }
+  data.type = 'struct';
   return match(state, {
     else: allowEmpty && ((state, token) => {
       // Just push the token and return the data.
       state.push(token);
-      data.type = 'structEmpty';
+      data.subType = 'empty';
       data.keys = [];
       return data;
     }),
     curlyOpen: () => {
-      data.type = 'structObject';
+      data.subType = 'object';
       data.values = {};
       data.keys = [];
       let exited = false;
@@ -202,7 +197,7 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
       return data;
     },
     parenOpen: () => {
-      data.type = 'structArray';
+      data.subType = 'array';
       // Quite simple, since we just need to accept keywords again and again.
       data.keys = [];
       function processKeyword(state, token) {
