@@ -14,6 +14,7 @@ module.exports = {
     'no-return-assign': [0],
     'comma-dangle': [2, "always-multiline"],
     'space-before-function-paren': [2, "never"],
+    'no-new-func': [0],
   },
   env: {
     browser: true,
