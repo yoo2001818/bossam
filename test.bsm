@@ -7,7 +7,7 @@ enum Message(type) {
   Leave,
 }
 
-struct MessageContainer("msg": str<"utf-8">, u8, Message);
+struct MessageContainer("msg": str, u8, Message);
 
 struct Packet {
   // This is used to check magic numbers. It only supports big endian - as
@@ -15,12 +15,9 @@ struct Packet {
   0xDEADCAFE: i32,
   // A UTF-8 byte sequence can be used too. As the text size is static,
   // str can be used too (String length won't be used)
-  // If unspecified, utf-8 will be used. Other charsets can be provided, if
-  // TextDecoder supports it.
-  "PNG": str<"utf-8">,
-  "PNG": str<"utf-16le">,
+  "PNG": str,
   // u32 will be used to write string size.
-  "PNG": String<"utf-16le">,
+  "PNG": String,
   // Unlike Rust, char represents single UTF-16 character - not a code point!
   parity: char,
   sender: (i32, String),
@@ -30,7 +27,7 @@ struct Packet {
   messages: [Message; size],
   checksum: String,
   checksumSize: u16,
-  checksum2: str<"utf-8", checksumSize>,
+  checksum2: str<checksumSize>,
 }
 
 struct LeavePacket {

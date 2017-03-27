@@ -29,6 +29,15 @@ const builtInNamespace = {
     encode: (value, dataView) => dataView.setUint32(value),
     decode: (dataView) => dataView.getUint32(),
   },
+  String: {
+    size: (value) => 0,
+    encode: (value, dataView) => {
+      // TODO
+    },
+    decode: (value, dataView) => {
+      // TODO
+    },
+  },
 };
 
 // Creates namespace. So simple :P

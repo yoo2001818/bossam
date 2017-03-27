@@ -1,3 +1,5 @@
+import getIdentifier from './util/getIdentifier';
+
 function match(state, matches) {
   // Try to match the type
   let token = state.next();
@@ -48,6 +50,8 @@ function main(state) {
       let data = defineStruct(state);
       state.namespace[getIdentifier(data)] = data;
     },
+    // Do nothing if semicolon is provided
+    semicolon: () => {},
   }) !== false);
 }
 
@@ -282,11 +286,6 @@ function getType(state, generics) {
 
 function getVariable(state) {
   return pull(state, 'keyword').name;
-}
-
-function getIdentifier(data) {
-  if (data.generics == null) return data.name;
-  return data.name + '<' + data.generics.map(() => '_').join(',') + '>';
 }
 
 function getName(state, generics, define) {
