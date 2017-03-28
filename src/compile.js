@@ -80,7 +80,14 @@ function compileStruct(state, ast, generics) {
       break;
     }
   }
+  // This is used by compiled function; disable eslint for this line
+  const namespace = state.namespace; // eslint-disable-line
   console.log(sizeCode.join('\n'));
   console.log(encodeCode.join('\n'));
   console.log(decodeCode.join('\n'));
+  let output = {};
+  output.size = new Function('value', sizeCode.join('\n'));
+  output.encode = new Function('value', 'dataView', encodeCode.join('\n'));
+  output.decode = new Function('dataView', decodeCode.join('\n'));
+  return output;
 }
