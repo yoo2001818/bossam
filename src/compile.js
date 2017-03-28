@@ -28,6 +28,8 @@ function resolveBlock(state, name, generics) {
       getIdentifier({ name }, generics.map(() => '_')));
     if (template == null) throw new Error(`${key} is not defined`);
     return template(generics);
+  } else if (astBlock == null && namespace[key] == null) {
+    throw new Error(`${key} is not defined`);
   }
   // If the block is already compiled, skip it.
   if (namespace[key] != null) return namespace[key];
@@ -41,8 +43,44 @@ function resolveBlock(state, name, generics) {
     return namespace[key];
   }
   // Otherwise, just compile it!
+  if (astBlock.type === 'struct') {
+    namespace[key] = compileStruct(state, astBlock, generics);
+  }
 }
 
 function compileStruct(state, ast, generics) {
-
+  let sizeCode = ['var size = 0;'];
+  let encodeCode = [];
+  let decodeCode = [];
+  // TODO We can directly reference functions; but since that's complicated,
+  // just use indirect reference now
+  switch (ast.subType) {
+    case 'object': {
+      decodeCode.push('var output = {};');
+      ast.keys.forEach(key => {
+        let value = ast.values[key];
+        let name = value.generic ? generics[value.name] : value.name;
+        resolveBlock(state, name, value.generics);
+        // When we use direct reference, this will be changed to use output of
+        // resolveBlock function.
+        let typeName = getIdentifier({ name }, value.generics);
+        let ref = `namespace['${typeName}']`;
+        sizeCode.push(`size += ${ref}.size(value['${key}']);`);
+        encodeCode.push(`${ref}.encode(value['${key}'], dataView);`);
+        decodeCode.push(`value['${key}'] = ${ref}.decode(dataView);`);
+      });
+      sizeCode.push('return size;');
+      decodeCode.push('return output;');
+      break;
+    }
+    case 'array': {
+      break;
+    }
+    case 'empty': {
+      break;
+    }
+  }
+  console.log(sizeCode.join('\n'));
+  console.log(encodeCode.join('\n'));
+  console.log(decodeCode.join('\n'));
 }
