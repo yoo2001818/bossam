@@ -31,4 +31,19 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile double generics', () => {
+    compile(parse(tokenize(`
+      struct MessageData<T> {
+        data: T,
+      }
+      struct Message<PacketSize> {
+        size: MessageData<PacketSize>,
+        name: String,
+      }
+      struct Test {
+        header: String,
+        message: Message<i32>,
+      }
+    `)));
+  });
 });

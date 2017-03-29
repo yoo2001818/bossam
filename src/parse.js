@@ -298,7 +298,6 @@ function getName(state, generics, define) {
       data.generic = true;
       data.name = genericIndex;
     }
-    return data;
   }
   // Support generics - continue if we have generics.
   // We're suddenly using continuation-passing style. I'm not sure why.
