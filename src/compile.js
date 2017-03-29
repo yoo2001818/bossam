@@ -5,6 +5,7 @@ import getIdentifier from './util/getIdentifier';
 export default function compile(ast, namespace = createNamespace()) {
   // Create compiler state.
   let state = { ast, namespace };
+  state.resolveBlock = resolveBlock.bind(null, state);
   // Resolve each block - all blocks will be compiled then.
   // However, if a circular reference occurs, a stack overflow will happen.
   // It can be resolved by sacrificing some functions to resolve other
@@ -33,7 +34,7 @@ function resolveBlock(state, name, generics, astFallback) {
     let template = resolveBlock(state,
       getIdentifier({ name }, generics.map(() => '_')));
     if (template == null) throw new Error(`${key} is not defined`);
-    return template(generics);
+    return template(generics, namespace);
   } else if (astBlock == null && namespace[key] == null) {
     throw new Error(`${key} is not defined`);
   }

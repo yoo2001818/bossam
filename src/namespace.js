@@ -1,3 +1,5 @@
+import getIdentifier from './util/getIdentifier';
+
 const builtInNamespace = {
   i8: {
     size: () => 1,
@@ -28,6 +30,41 @@ const builtInNamespace = {
     size: () => 4,
     encode: (value, dataView) => dataView.setUint32(value),
     decode: (dataView) => dataView.getUint32(),
+  },
+  'Array<_>': (generics, state) => {
+    const { namespace } = state;
+    // Built-in template function is really weird to implement.
+    let key = getIdentifier({ name: 'Array' }, generics);
+    if (namespace[key] != null) return namespace[key];
+    const keyword = generics[0];
+    let name = keyword.generic ? generics[keyword.name].name : keyword.name;
+    state.resolveBlock(name, keyword.generics);
+    // When we use direct reference, this will be changed to use output of
+    // resolveBlock function.
+    let typeName = getIdentifier({ name }, keyword.generics);
+    return namespace[key] = {
+      size: (value) => {
+        let size = 0;
+        size += 4;
+        for (let i = 0; i < value.length; ++i) {
+          size += namespace[typeName].size(value[i]);
+        }
+        return size;
+      },
+      encode: (value, dataView) => {
+        dataView.setInt32(value.length);
+        for (let i = 0; i < value.length; ++i) {
+          namespace[typeName].encode(value[i], dataView);
+        }
+      },
+      decode: (value, dataView) => {
+        let size = dataView.getInt32(value.length);
+        let output = new Array(size);
+        for (let i = 0; i < size; ++i) {
+          output[size] = namespace[typeName].decode(dataView);
+        }
+      },
+    };
   },
   String: {
     size: (value) => 0,
