@@ -17,6 +17,13 @@ export default function compile(ast, namespace = createNamespace()) {
   console.log(namespace);
 }
 
+export function assert(expected, received) {
+  if (expected !== received) {
+    throw new Error(
+      `Assertion error: Expected ${expected}, but got ${received}`);
+  }
+}
+
 function resolveBlock(state, name, generics) {
   const { ast, namespace } = state;
   let key = getIdentifier({ name }, generics);
@@ -58,16 +65,30 @@ function compileStruct(state, ast, generics) {
     case 'object': {
       decodeCode.push('var output = {};');
       ast.keys.forEach(key => {
-        let value = ast.values[key];
-        let name = value.generic ? generics[value.name] : value.name;
-        resolveBlock(state, name, value.generics);
-        // When we use direct reference, this will be changed to use output of
-        // resolveBlock function.
-        let typeName = getIdentifier({ name }, value.generics);
-        let ref = `namespace['${typeName}']`;
-        sizeCode.push(`size += ${ref}.size(value['${key}']);`);
-        encodeCode.push(`${ref}.encode(value['${key}'], dataView);`);
-        decodeCode.push(`value['${key}'] = ${ref}.decode(dataView);`);
+        // If key is an object, process it separately since it is a const
+        // value, not an actual value.
+        if (typeof key === 'object' && key.const) {
+          let type = key.type;
+          let name = type.generic ? generics[type.name] : type.name;
+          let typeName = getIdentifier({ name }, type.generics);
+          let ref = `namespace['${typeName}']`;
+          // Stringify the value using JSON encoder.
+          let value = JSON.stringify(key.value);
+          sizeCode.push(`size += ${ref}.size(${value});`);
+          encodeCode.push(`${ref}.encode(${value}, dataView);`);
+          decodeCode.push(`assert(${value}, ${ref}.decode(dataView));`);
+        } else {
+          let value = ast.values[key];
+          let name = value.generic ? generics[value.name] : value.name;
+          resolveBlock(state, name, value.generics);
+          // When we use direct reference, this will be changed to use output of
+          // resolveBlock function.
+          let typeName = getIdentifier({ name }, value.generics);
+          let ref = `namespace['${typeName}']`;
+          sizeCode.push(`size += ${ref}.size(value['${key}']);`);
+          encodeCode.push(`${ref}.encode(value['${key}'], dataView);`);
+          decodeCode.push(`value['${key}'] = ${ref}.decode(dataView);`);
+        }
       });
       sizeCode.push('return size;');
       decodeCode.push('return output;');
