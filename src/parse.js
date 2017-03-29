@@ -8,7 +8,7 @@ function match(state, matches) {
   if (matched == null) {
     if (matches.else != null) return matches.else(state, token);
     throw new Error('Token error; Expected ' +
-      Object.keys(matches).join(',') + ', But received ' + type
+      Object.keys(matches).join(', ') + ', But received ' + type
     );
   }
   return matched(state, token);
@@ -155,13 +155,13 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
   }
   data.type = 'struct';
   return match(state, {
-    else: allowEmpty && ((state, token) => {
+    else: !allowEmpty ? null : (state, token) => {
       // Just push the token and return the data.
       state.push(token);
       data.subType = 'empty';
       data.keys = [];
       return data;
-    }),
+    },
     curlyOpen: () => {
       data.subType = 'object';
       data.values = {};
@@ -351,6 +351,5 @@ export default function parse(tokenizer) {
   // Read each line and process. Since this uses JS's own stack, it'd be really
   // simple to describe the language.
   main(state);
-  console.log(JSON.stringify(state.namespace, null, 2));
   return state.namespace;
 }

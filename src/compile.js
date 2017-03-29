@@ -14,7 +14,6 @@ export default function compile(ast, namespace = createNamespace()) {
   for (let key in ast) {
     resolveBlock(state, key);
   }
-  console.log(namespace);
 }
 
 export function assert(expected, received) {
@@ -24,10 +23,10 @@ export function assert(expected, received) {
   }
 }
 
-function resolveBlock(state, name, generics) {
+function resolveBlock(state, name, generics, astFallback) {
   const { ast, namespace } = state;
   let key = getIdentifier({ name }, generics);
-  let astBlock = ast[key];
+  let astBlock = ast[key] || astFallback;
   // If 'generics' is provided and the astBlock is missing, compile against
   // the generics template.
   if (generics != null && astBlock == null) {
@@ -46,7 +45,8 @@ function resolveBlock(state, name, generics) {
   // If 'generics' is not defined and the block uses generics, return a
   // function that compiles the block using generics.
   if (generics == null && astBlock.generics != null) {
-    namespace[key] = resolveBlock.bind(null, state, astBlock.name);
+    namespace[key] = (generics) => resolveBlock(state, astBlock.name,
+      generics, astBlock);
     return namespace[key];
   }
   // Otherwise, just compile it!
@@ -61,6 +61,29 @@ function compileStruct(state, ast, generics) {
   let decodeCode = [];
   // TODO We can directly reference functions; but since that's complicated,
   // just use indirect reference now
+  function writeEntry(key, value) {
+    if (value.const) {
+      let type = value.type;
+      let name = type.generic ? generics[type.name] : type.name;
+      let typeName = getIdentifier({ name }, type.generics);
+      let ref = `namespace['${typeName}']`;
+      // Stringify the value using JSON encoder.
+      let valueStr = JSON.stringify(value.value);
+      sizeCode.push(`size += ${ref}.size(${valueStr});`);
+      encodeCode.push(`${ref}.encode(${valueStr}, dataView);`);
+      decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
+    } else {
+      let name = value.generic ? generics[value.name].name : value.name;
+      resolveBlock(state, name, value.generics);
+      // When we use direct reference, this will be changed to use output of
+      // resolveBlock function.
+      let typeName = getIdentifier({ name }, value.generics);
+      let ref = `namespace['${typeName}']`;
+      sizeCode.push(`size += ${ref}.size(value[${key}]);`);
+      encodeCode.push(`${ref}.encode(value[${key}], dataView);`);
+      decodeCode.push(`value[${key}] = ${ref}.decode(dataView);`);
+    }
+  }
   switch (ast.subType) {
     case 'object': {
       decodeCode.push('var output = {};');
@@ -68,26 +91,9 @@ function compileStruct(state, ast, generics) {
         // If key is an object, process it separately since it is a const
         // value, not an actual value.
         if (typeof key === 'object' && key.const) {
-          let type = key.type;
-          let name = type.generic ? generics[type.name] : type.name;
-          let typeName = getIdentifier({ name }, type.generics);
-          let ref = `namespace['${typeName}']`;
-          // Stringify the value using JSON encoder.
-          let value = JSON.stringify(key.value);
-          sizeCode.push(`size += ${ref}.size(${value});`);
-          encodeCode.push(`${ref}.encode(${value}, dataView);`);
-          decodeCode.push(`assert(${value}, ${ref}.decode(dataView));`);
+          writeEntry(null, key);
         } else {
-          let value = ast.values[key];
-          let name = value.generic ? generics[value.name] : value.name;
-          resolveBlock(state, name, value.generics);
-          // When we use direct reference, this will be changed to use output of
-          // resolveBlock function.
-          let typeName = getIdentifier({ name }, value.generics);
-          let ref = `namespace['${typeName}']`;
-          sizeCode.push(`size += ${ref}.size(value['${key}']);`);
-          encodeCode.push(`${ref}.encode(value['${key}'], dataView);`);
-          decodeCode.push(`value['${key}'] = ${ref}.decode(dataView);`);
+          writeEntry(`'${key}'`, ast.values[key]);
         }
       });
       sizeCode.push('return size;');
@@ -95,9 +101,22 @@ function compileStruct(state, ast, generics) {
       break;
     }
     case 'array': {
+      decodeCode.push('var output = [];');
+      let pos = 0;
+      ast.keys.forEach(key => {
+        if (key.const) {
+          writeEntry(null, key);
+        } else {
+          writeEntry(pos++, key);
+        }
+      });
+      sizeCode.push('return size;');
+      decodeCode.push('return output;');
       break;
     }
     case 'empty': {
+      sizeCode.push('return 0;');
+      decodeCode.push('return {};');
       break;
     }
   }
