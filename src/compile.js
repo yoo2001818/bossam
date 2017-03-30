@@ -3,6 +3,7 @@ import createNamespace from './namespace';
 import getIdentifier from './util/getIdentifier';
 
 export default function compile(ast, namespace = createNamespace()) {
+  console.log(JSON.stringify(ast, null, 2));
   // Create compiler state.
   let state = { ast, namespace };
   state.resolveBlock = resolveBlock.bind(null, state);
@@ -65,8 +66,10 @@ function compileStruct(state, ast, generics) {
   function writeEntry(key, value) {
     if (value.const) {
       let type = value.type;
-      let name = type.generic ? generics[type.name] : type.name;
-      let typeName = getIdentifier({ name }, type.generics);
+      if (type.generic) type = generics[type.name];
+      let typeGenerics = type.generics && type.generics.map(
+        v => v.generic ? generics[v.name] : v);
+      let typeName = getIdentifier({ name: type.name }, typeGenerics);
       let ref = `namespace['${typeName}']`;
       // Stringify the value using JSON encoder.
       let valueStr = JSON.stringify(value.value);
@@ -74,11 +77,14 @@ function compileStruct(state, ast, generics) {
       encodeCode.push(`${ref}.encode(${valueStr}, dataView);`);
       decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
     } else {
-      let name = value.generic ? generics[value.name].name : value.name;
-      resolveBlock(state, name, value.generics);
+      let type = value;
+      if (type.generic) type = generics[type.name];
+      let typeGenerics = type.generics && type.generics.map(
+        v => v.generic ? generics[v.name] : v);
+      resolveBlock(state, type.name, typeGenerics);
       // When we use direct reference, this will be changed to use output of
       // resolveBlock function.
-      let typeName = getIdentifier({ name }, value.generics);
+      let typeName = getIdentifier({ name: type.name }, typeGenerics);
       let ref = `namespace['${typeName}']`;
       sizeCode.push(`size += ${ref}.size(value[${key}]);`);
       encodeCode.push(`${ref}.encode(value[${key}], dataView);`);

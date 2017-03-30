@@ -38,10 +38,12 @@ const builtInNamespace = {
     if (namespace[key] != null) return namespace[key];
     const keyword = generics[0];
     let name = keyword.generic ? generics[keyword.name].name : keyword.name;
-    state.resolveBlock(name, keyword.generics);
+    let typeGenerics = keyword.generics && keyword.generics.map(
+      v => v.generic ? generics[v.name] : v);
+    state.resolveBlock(name, typeGenerics);
     // When we use direct reference, this will be changed to use output of
     // resolveBlock function.
-    let typeName = getIdentifier({ name }, keyword.generics);
+    let typeName = getIdentifier({ name }, typeGenerics);
     return namespace[key] = {
       size: (value) => {
         let size = 0;
