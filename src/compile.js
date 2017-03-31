@@ -6,6 +6,7 @@ export default function compile(ast, namespace = createNamespace()) {
   console.log(JSON.stringify(ast, null, 2));
   // Create compiler state.
   let state = { ast, namespace };
+  state.resolveType = resolveType.bind(null, state);
   state.resolveBlock = resolveBlock.bind(null, state);
   // Resolve each block - all blocks will be compiled then.
   // However, if a circular reference occurs, a stack overflow will happen.
@@ -25,17 +26,29 @@ export function assert(expected, received) {
   }
 }
 
-function resolveBlock(state, name, generics, astFallback) {
+function resolveType(state, type, parentGenerics) {
+  let resolvedType = type;
+  if (type.generic === true) resolvedType = parentGenerics[type.name];
+  return resolveBlock(state, resolvedType.name,
+    resolvedType.generics, parentGenerics);
+}
+
+function resolveBlock(state, name, generics, parentGenerics) {
   const { ast, namespace } = state;
-  let key = getIdentifier({ name }, generics);
-  let astBlock = ast[key] || astFallback;
+  let genericsData = generics;
+  if (generics != null && parentGenerics != null) {
+    genericsData = generics.map(v => v.generic ? parentGenerics[v.name] : v);
+  }
+  let key = getIdentifier({ name }, genericsData);
+  let astBlock = ast[key];
   // If 'generics' is provided and the astBlock is missing, compile against
   // the generics template.
   if (generics != null && astBlock == null) {
     let template = resolveBlock(state,
       getIdentifier({ name }, generics.map(() => '_')));
     if (template == null) throw new Error(`${key} is not defined`);
-    return template(generics, namespace);
+    namespace[key] = template(genericsData, namespace);
+    return key;
   } else if (astBlock == null && namespace[key] == null) {
     throw new Error(`${key} is not defined`);
   }
@@ -47,14 +60,24 @@ function resolveBlock(state, name, generics, astFallback) {
   // If 'generics' is not defined and the block uses generics, return a
   // function that compiles the block using generics.
   if (generics == null && astBlock.generics != null) {
-    namespace[key] = (generics) => resolveBlock(state, astBlock.name,
-      generics, astBlock);
-    return namespace[key];
+    namespace[key] = (generics) => {
+      // Since the generics variable is already processed by parentGenerics,
+      // we can just call compileBlock with correct generics. Done!
+      return compileBlock(state, astBlock, generics);
+    };
+    return key;
   }
   // Otherwise, just compile it!
+  namespace[key] = compileBlock(state, astBlock, genericsData);
+  return key;
+}
+
+// Assume that everything is compiled at this moment.
+function compileBlock(state, astBlock, generics) {
   if (astBlock.type === 'struct') {
-    namespace[key] = compileStruct(state, astBlock, generics);
+    return compileStruct(state, astBlock, generics);
   }
+  throw new Error('Unknown type ' + astBlock.type);
 }
 
 function compileStruct(state, ast, generics) {
@@ -65,11 +88,7 @@ function compileStruct(state, ast, generics) {
   // just use indirect reference now
   function writeEntry(key, value) {
     if (value.const) {
-      let type = value.type;
-      if (type.generic) type = generics[type.name];
-      let typeGenerics = type.generics && type.generics.map(
-        v => v.generic ? generics[v.name] : v);
-      let typeName = getIdentifier({ name: type.name }, typeGenerics);
+      let typeName = resolveType(state, value.type, generics);
       let ref = `namespace['${typeName}']`;
       // Stringify the value using JSON encoder.
       let valueStr = JSON.stringify(value.value);
@@ -77,14 +96,7 @@ function compileStruct(state, ast, generics) {
       encodeCode.push(`${ref}.encode(${valueStr}, dataView);`);
       decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
     } else {
-      let type = value;
-      if (type.generic) type = generics[type.name];
-      let typeGenerics = type.generics && type.generics.map(
-        v => v.generic ? generics[v.name] : v);
-      resolveBlock(state, type.name, typeGenerics);
-      // When we use direct reference, this will be changed to use output of
-      // resolveBlock function.
-      let typeName = getIdentifier({ name: type.name }, typeGenerics);
+      let typeName = resolveType(state, value, generics);
       let ref = `namespace['${typeName}']`;
       sizeCode.push(`size += ${ref}.size(value[${key}]);`);
       encodeCode.push(`${ref}.encode(value[${key}], dataView);`);

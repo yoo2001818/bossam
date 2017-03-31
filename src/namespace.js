@@ -33,18 +33,8 @@ const builtInNamespace = {
   },
   'Array<_>': (generics, state) => {
     const { namespace } = state;
-    // Built-in template function is really weird to implement.
-    let key = getIdentifier({ name: 'Array' }, generics);
-    if (namespace[key] != null) return namespace[key];
-    const keyword = generics[0];
-    let name = keyword.generic ? generics[keyword.name].name : keyword.name;
-    let typeGenerics = keyword.generics && keyword.generics.map(
-      v => v.generic ? generics[v.name] : v);
-    state.resolveBlock(name, typeGenerics);
-    // When we use direct reference, this will be changed to use output of
-    // resolveBlock function.
-    let typeName = getIdentifier({ name }, typeGenerics);
-    return namespace[key] = {
+    let typeName = state.resolveType(state, generics[0]);
+    return {
       size: (value) => {
         let size = 0;
         size += 4;
