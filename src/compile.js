@@ -44,8 +44,9 @@ function resolveBlock(state, name, generics, parentGenerics) {
   // If 'generics' is provided and the astBlock is missing, compile against
   // the generics template.
   if (generics != null && astBlock == null) {
-    let template = resolveBlock(state,
+    let templateKey = resolveBlock(state,
       getIdentifier({ name }, generics.map(() => '_')));
+    let template = namespace[templateKey];
     if (template == null) throw new Error(`${key} is not defined`);
     namespace[key] = template(genericsData, namespace);
     return key;
@@ -53,7 +54,7 @@ function resolveBlock(state, name, generics, parentGenerics) {
     throw new Error(`${key} is not defined`);
   }
   // If the block is already compiled, skip it.
-  if (namespace[key] != null) return namespace[key];
+  if (namespace[key] != null) return key;
   // 'Lock' the output object to avoid stack overflow. Any other functions
   // meeting this 'false' will use proxy objects instead.
   namespace[key] = false;
