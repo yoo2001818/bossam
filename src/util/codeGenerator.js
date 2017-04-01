@@ -1,0 +1,76 @@
+// Generates the code using inline
+export default class CodeGenerator {
+  constructor(state) {
+    this.namespace = state.namespace;
+    this.sizeCode = [];
+    this.decodeCode = [];
+    this.encodeCode = [];
+  }
+  push(code) {
+    // Assume that all codes are same.
+    this.sizeCode.push(code);
+    this.decodeCode.push(code);
+    this.encodeCode.push(code);
+  }
+  pushEncode(code) {
+    // Encode / size has same code.
+    this.sizeCode.push(code);
+    this.encodeCode.push(code);
+  }
+  pushDecode(code) {
+    this.decodeCode.push(code);
+  }
+  pushType(keyword, type, doVar) {
+    this.pushTypeEncode(keyword, type);
+    this.pushTypeDecode(keyword, type, doVar);
+  }
+  pushTypeEncode(keyword, type) {
+    // Pull the value from the namespace.
+    let typeValue = this.namespace[type];
+    if (typeValue === false) {
+      // Namespace value is false; since the function is not available yet,
+      // (This means there is a circular reference) just call the method
+      // directly.
+      let ref = `namespace['${type}']`;
+      this.sizeCode.push(`size += ${ref}.size(${keyword});`);
+      this.encodeCode.push(`${ref}.encode(${keyword}, dataView);`);
+    } else {
+      // Or include the code into the output code. :)
+      this.sizeCode.push(typeValue.sizeCode.replace(/#value#/g, keyword));
+      this.encodeCode.push(typeValue.encodeCode.replace(/#value#/g, keyword));
+    }
+  }
+  pushTypeDecode(keyword, type, doVar) {
+    // Pull the value from the namespace.
+    let typeValue = this.namespace[type];
+    if (doVar) this.decodeCode.push(`var ${keyword};`);
+    if (typeValue === false) {
+      // Namespace value is false; since the function is not available yet,
+      // (This means there is a circular reference) just call the method
+      // directly.
+      let ref = `namespace['${type}']`;
+      this.decodeCode.push(`${keyword} = ${ref}.decode(dataView);`);
+    } else {
+      // Or include the code into the output code. :)
+      this.decodeCode.push(typeValue.decodeCode.replace(/#value#/g, keyword));
+    }
+  }
+  compile() {
+    let output = {
+      sizeCode: this.sizeCode.join('\n'),
+      encodeCode: this.encodeCode.join('\n'),
+      decodeCode: this.decodeCode.join('\n'),
+    };
+    // Simply swap #value# with value and we're good to go.
+    output.size = new Function('value',
+      output.sizeCode.replace(/#value#/g, 'value'));
+    output.encode = new Function('value', 'dataView',
+      output.encodeCode.replace(/#value#/g, 'value'));
+    // Decode code should define output target, so define them like this.
+    output.decode = new Function('value', 'dataView',
+      'var value;\n' +
+      output.decodeCode.replace(/#value#/g, 'value') +
+      'return value;\n');
+    return output;
+  }
+}

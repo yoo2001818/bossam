@@ -1,62 +1,66 @@
-import getIdentifier from './util/getIdentifier';
+import CodeGenerator from './util/codeGenerator';
 
 const builtInNamespace = {
   i8: {
     size: () => 1,
     encode: (value, dataView) => dataView.setInt8(value),
     decode: (dataView) => dataView.getInt8(),
+    sizeCode: 'size += 1;\n',
+    encodeCode: 'dataView.setInt8(#value#);\n',
+    decodeCode: '#value# = dataView.getInt8();\n',
   },
   u8: {
     size: () => 1,
     encode: (value, dataView) => dataView.setUint8(value),
     decode: (dataView) => dataView.getUint8(),
+    sizeCode: 'size += 1;\n',
+    encodeCode: 'dataView.setUint8(#value#);\n',
+    decodeCode: '#value# = dataView.getUint8();\n',
   },
   i16: {
     size: () => 2,
     encode: (value, dataView) => dataView.setInt16(value),
     decode: (dataView) => dataView.getInt16(),
+    sizeCode: 'size += 2;\n',
+    encodeCode: 'dataView.setInt16(#value#);\n',
+    decodeCode: '#value# = dataView.getInt16();\n',
   },
   u16: {
     size: () => 2,
     encode: (value, dataView) => dataView.setUint16(value),
     decode: (dataView) => dataView.getUint16(),
+    sizeCode: 'size += 2;\n',
+    encodeCode: 'dataView.setUint16(#value#);\n',
+    decodeCode: '#value# = dataView.getUint16();\n',
   },
   i32: {
     size: () => 4,
     encode: (value, dataView) => dataView.setInt32(value),
     decode: (dataView) => dataView.getInt32(),
+    sizeCode: 'size += 4;\n',
+    encodeCode: 'dataView.setInt32(#value#);\n',
+    decodeCode: '#value# = dataView.getInt32();\n',
   },
   u32: {
     size: () => 4,
     encode: (value, dataView) => dataView.setUint32(value),
     decode: (dataView) => dataView.getUint32(),
+    sizeCode: 'size += 4;\n',
+    encodeCode: 'dataView.setUint32(#value#);\n',
+    decodeCode: '#value# = dataView.getUint32();\n',
   },
   'Array<_>': (generics, state) => {
-    const { namespace } = state;
     let typeName = state.resolveType(state, generics[0]);
-    return {
-      size: (value) => {
-        let size = 0;
-        size += 4;
-        for (let i = 0; i < value.length; ++i) {
-          size += namespace[typeName].size(value[i]);
-        }
-        return size;
-      },
-      encode: (value, dataView) => {
-        dataView.setInt32(value.length);
-        for (let i = 0; i < value.length; ++i) {
-          namespace[typeName].encode(value[i], dataView);
-        }
-      },
-      decode: (value, dataView) => {
-        let size = dataView.getInt32(value.length);
-        let output = new Array(size);
-        for (let i = 0; i < size; ++i) {
-          output[size] = namespace[typeName].decode(dataView);
-        }
-      },
-    };
+    let codeGen = new CodeGenerator(state);
+    // TODO Randomize size variable to avoid conflict
+    codeGen.pushTypeDecode('size', 'u32', true);
+    codeGen.pushEncode('var size = #value#.length;');
+    codeGen.pushTypeEncode('size', 'u32');
+    codeGen.pushDecode('#value# = new Array(size);');
+    codeGen.push('for (var i = 0; i < size; ++i) {');
+    codeGen.pushType('#value#[i]', typeName);
+    codeGen.push('}');
+    return codeGen.compile();
   },
   String: {
     size: (value) => 0,
