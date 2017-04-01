@@ -63,15 +63,7 @@ const builtInNamespace = {
     codeGen.push('}');
     return codeGen.compile();
   },
-  String: {
-    size: (value) => 0,
-    encode: (value, dataView) => {
-      // TODO
-    },
-    decode: (value, dataView) => {
-      // TODO
-    },
-  },
+  String: false,
 };
 
 // Creates namespace. So simple :P

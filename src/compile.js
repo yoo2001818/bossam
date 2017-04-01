@@ -1,6 +1,7 @@
 import DataBuffer from './dataBuffer';
 import createNamespace from './namespace';
 import getIdentifier from './util/getIdentifier';
+import CodeGenerator from './util/codeGenerator';
 
 export default function compile(ast, namespace = createNamespace()) {
   console.log(JSON.stringify(ast, null, 2));
@@ -82,31 +83,25 @@ function compileBlock(state, astBlock, generics) {
 }
 
 function compileStruct(state, ast, generics) {
-  let sizeCode = ['var size = 0;'];
-  let encodeCode = [];
-  let decodeCode = [];
+  let codeGen = new CodeGenerator(state);
   // TODO We can directly reference functions; but since that's complicated,
   // just use indirect reference now
   function writeEntry(key, value) {
     if (value.const) {
       let typeName = resolveType(state, value.type, generics);
-      let ref = `namespace['${typeName}']`;
-      // Stringify the value using JSON encoder.
       let valueStr = JSON.stringify(value.value);
-      sizeCode.push(`size += ${ref}.size(${valueStr});`);
-      encodeCode.push(`${ref}.encode(${valueStr}, dataView);`);
-      decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
+      codeGen.pushTypeEncode(valueStr, typeName);
+      codeGen.pushTypeDecode('assertValue', typeName, true);
+      // TODO Actually assert the value
+      // decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
     } else {
       let typeName = resolveType(state, value, generics);
-      let ref = `namespace['${typeName}']`;
-      sizeCode.push(`size += ${ref}.size(value[${key}]);`);
-      encodeCode.push(`${ref}.encode(value[${key}], dataView);`);
-      decodeCode.push(`value[${key}] = ${ref}.decode(dataView);`);
+      codeGen.pushType(`#value#[${key}]`, typeName);
     }
   }
   switch (ast.subType) {
     case 'object': {
-      decodeCode.push('var output = {};');
+      codeGen.pushDecode('#value# = {};');
       ast.keys.forEach(key => {
         // If key is an object, process it separately since it is a const
         // value, not an actual value.
@@ -116,12 +111,10 @@ function compileStruct(state, ast, generics) {
           writeEntry(`'${key}'`, ast.values[key]);
         }
       });
-      sizeCode.push('return size;');
-      decodeCode.push('return output;');
       break;
     }
     case 'array': {
-      decodeCode.push('var output = [];');
+      codeGen.pushDecode('#value# = [];');
       let pos = 0;
       ast.keys.forEach(key => {
         if (key.const) {
@@ -130,24 +123,12 @@ function compileStruct(state, ast, generics) {
           writeEntry(pos++, key);
         }
       });
-      sizeCode.push('return size;');
-      decodeCode.push('return output;');
       break;
     }
     case 'empty': {
-      sizeCode.push('return 0;');
-      decodeCode.push('return {};');
+      codeGen.pushDecode('#value# = {};');
       break;
     }
   }
-  // This is used by compiled function; disable eslint for this line
-  const namespace = state.namespace; // eslint-disable-line
-  console.log(sizeCode.join('\n'));
-  console.log(encodeCode.join('\n'));
-  console.log(decodeCode.join('\n'));
-  let output = {};
-  output.size = new Function('value', sizeCode.join('\n'));
-  output.encode = new Function('value', 'dataView', encodeCode.join('\n'));
-  output.decode = new Function('dataView', decodeCode.join('\n'));
-  return output;
+  return codeGen.compile();
 }

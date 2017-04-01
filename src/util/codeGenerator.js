@@ -27,7 +27,7 @@ export default class CodeGenerator {
   pushTypeEncode(keyword, type) {
     // Pull the value from the namespace.
     let typeValue = this.namespace[type];
-    if (typeValue === false) {
+    if (typeValue === false || typeValue == null) {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
@@ -46,7 +46,7 @@ export default class CodeGenerator {
     // Pull the value from the namespace.
     let typeValue = this.namespace[type];
     if (doVar) this.decodeCode.push(`var ${keyword};`);
-    if (typeValue === false) {
+    if (typeValue === false || typeValue == null) {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
@@ -59,6 +59,7 @@ export default class CodeGenerator {
     }
   }
   compile() {
+    const namespace = this.namespace; // eslint-disable-line
     let output = {
       sizeCode: this.sizeCode.join('\n') + '\n',
       encodeCode: this.encodeCode.join('\n') + '\n',
