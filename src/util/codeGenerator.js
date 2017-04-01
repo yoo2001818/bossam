@@ -36,8 +36,10 @@ export default class CodeGenerator {
       this.encodeCode.push(`${ref}.encode(${keyword}, dataView);`);
     } else {
       // Or include the code into the output code. :)
-      this.sizeCode.push(typeValue.sizeCode.replace(/#value#/g, keyword));
-      this.encodeCode.push(typeValue.encodeCode.replace(/#value#/g, keyword));
+      this.sizeCode.push(typeValue.sizeCode.replace(/#value#/g, keyword)
+        .slice(0, -1));
+      this.encodeCode.push(typeValue.encodeCode.replace(/#value#/g, keyword)
+        .slice(0, -1));
     }
   }
   pushTypeDecode(keyword, type, doVar) {
@@ -52,18 +54,21 @@ export default class CodeGenerator {
       this.decodeCode.push(`${keyword} = ${ref}.decode(dataView);`);
     } else {
       // Or include the code into the output code. :)
-      this.decodeCode.push(typeValue.decodeCode.replace(/#value#/g, keyword));
+      this.decodeCode.push(typeValue.decodeCode.replace(/#value#/g, keyword)
+        .slice(0, -1));
     }
   }
   compile() {
     let output = {
-      sizeCode: this.sizeCode.join('\n'),
-      encodeCode: this.encodeCode.join('\n'),
-      decodeCode: this.decodeCode.join('\n'),
+      sizeCode: this.sizeCode.join('\n') + '\n',
+      encodeCode: this.encodeCode.join('\n') + '\n',
+      decodeCode: this.decodeCode.join('\n') + '\n',
     };
     // Simply swap #value# with value and we're good to go.
     output.size = new Function('value',
-      output.sizeCode.replace(/#value#/g, 'value'));
+      'var size = 0;\n' +
+      output.sizeCode.replace(/#value#/g, 'value') +
+      'return size;\n');
     output.encode = new Function('value', 'dataView',
       output.encodeCode.replace(/#value#/g, 'value'));
     // Decode code should define output target, so define them like this.
@@ -71,6 +76,9 @@ export default class CodeGenerator {
       'var value;\n' +
       output.decodeCode.replace(/#value#/g, 'value') +
       'return value;\n');
+    console.log(output.sizeCode);
+    console.log(output.encodeCode);
+    console.log(output.decodeCode);
     return output;
   }
 }

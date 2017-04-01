@@ -48,7 +48,7 @@ function resolveBlock(state, name, generics, parentGenerics) {
       getIdentifier({ name }, generics.map(() => '_')));
     let template = namespace[templateKey];
     if (template == null) throw new Error(`${key} is not defined`);
-    namespace[key] = template(genericsData, namespace);
+    namespace[key] = template(genericsData, state);
     return key;
   } else if (astBlock == null && namespace[key] == null) {
     throw new Error(`${key} is not defined`);

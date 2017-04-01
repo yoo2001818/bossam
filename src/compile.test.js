@@ -41,7 +41,7 @@ describe('compile', () => {
         name: String,
       }
       struct Test {
-        header: String,
+        header: Array<i32>,
         message: Message<MessageData<i32>>,
       }
     `)));

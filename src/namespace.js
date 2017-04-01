@@ -50,14 +50,15 @@ const builtInNamespace = {
     decodeCode: '#value# = dataView.getUint32();\n',
   },
   'Array<_>': (generics, state) => {
-    let typeName = state.resolveType(state, generics[0]);
+    let typeName = state.resolveType(generics[0]);
     let codeGen = new CodeGenerator(state);
-    // TODO Randomize size variable to avoid conflict
-    codeGen.pushTypeDecode('size', 'u32', true);
-    codeGen.pushEncode('var size = #value#.length;');
-    codeGen.pushTypeEncode('size', 'u32');
-    codeGen.pushDecode('#value# = new Array(size);');
-    codeGen.push('for (var i = 0; i < size; ++i) {');
+    // TODO Even if it's randomized, maybe it can cause a problem? Not sure yet.
+    let varName = 'arraySize' + (Math.random() * 100000 | 0);
+    codeGen.pushTypeDecode(varName, 'u32', true);
+    codeGen.pushEncode(`var ${varName} = #value#.length;`);
+    codeGen.pushTypeEncode(varName, 'u32');
+    codeGen.pushDecode(`#value# = new Array(${varName});`);
+    codeGen.push(`for (var i = 0; i < ${varName}; ++i) {`);
     codeGen.pushType('#value#[i]', typeName);
     codeGen.push('}');
     return codeGen.compile();
