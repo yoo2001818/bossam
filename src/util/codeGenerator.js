@@ -26,35 +26,33 @@ export default class CodeGenerator {
   }
   pushTypeEncode(keyword, type) {
     // Pull the value from the namespace.
-    let typeValue = this.namespace[type];
-    if (typeValue === false || typeValue == null) {
+    if (type == null || type.locked) {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
-      let ref = `namespace['${type}']`;
+      let ref = `namespace['${type.name}']`;
       this.sizeCode.push(`size += ${ref}.size(${keyword});`);
       this.encodeCode.push(`${ref}.encode(${keyword}, dataView);`);
     } else {
       // Or include the code into the output code. :)
-      this.sizeCode.push(typeValue.sizeCode.replace(/#value#/g, keyword)
+      this.sizeCode.push(type.sizeCode.replace(/#value#/g, keyword)
         .slice(0, -1));
-      this.encodeCode.push(typeValue.encodeCode.replace(/#value#/g, keyword)
+      this.encodeCode.push(type.encodeCode.replace(/#value#/g, keyword)
         .slice(0, -1));
     }
   }
   pushTypeDecode(keyword, type, doVar) {
     // Pull the value from the namespace.
-    let typeValue = this.namespace[type];
     if (doVar) this.decodeCode.push(`var ${keyword};`);
-    if (typeValue === false || typeValue == null) {
+    if (type == null || type.locked) {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
-      let ref = `namespace['${type}']`;
+      let ref = `namespace['${type.name}']`;
       this.decodeCode.push(`${keyword} = ${ref}.decode(dataView);`);
     } else {
       // Or include the code into the output code. :)
-      this.decodeCode.push(typeValue.decodeCode.replace(/#value#/g, keyword)
+      this.decodeCode.push(type.decodeCode.replace(/#value#/g, keyword)
         .slice(0, -1));
     }
   }

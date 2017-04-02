@@ -57,20 +57,21 @@ function resolveBlock(state, name, generics, parentGenerics) {
   // If 'generics' is provided and the astBlock is missing, compile against
   // the generics template.
   if (generics != null && astBlock == null) {
-    let templateKey = resolveBlock(state,
+    let template = resolveBlock(state,
       getIdentifier({ name }, generics.map(() => '_')));
-    let template = namespace[templateKey];
     if (template == null) throw new Error(`${key} is not defined`);
-    namespace[key] = template(genericsData, state);
-    return key;
+    let result = template(genericsData, state);
+    result.name = key;
+    namespace[key] = result;
+    return result;
   } else if (astBlock == null && namespace[key] == null) {
     throw new Error(`${key} is not defined`);
   }
   // If the block is already compiled, skip it.
-  if (namespace[key] != null) return key;
+  if (namespace[key] != null) return namespace[key];
   // 'Lock' the output object to avoid stack overflow. Any other functions
-  // meeting this 'false' will use proxy objects instead.
-  namespace[key] = false;
+  // meeting this locked object will use proxy objects instead.
+  namespace[key] = { name: key, locked: true };
   // If 'generics' is not defined and the block uses generics, return a
   // function that compiles the block using generics.
   if (generics == null && astBlock.generics != null) {
@@ -79,11 +80,13 @@ function resolveBlock(state, name, generics, parentGenerics) {
       // we can just call compileBlock with correct generics. Done!
       return compileBlock(state, astBlock, generics);
     };
-    return key;
+    return namespace[key];
   }
   // Otherwise, just compile it!
-  namespace[key] = compileBlock(state, astBlock, genericsData);
-  return key;
+  let result = compileBlock(state, astBlock, genericsData);
+  result.name = key;
+  namespace[key] = result;
+  return result;
 }
 
 // Assume that everything is compiled at this moment.
@@ -103,15 +106,15 @@ function compileStruct(state, ast, generics) {
   // just use indirect reference now
   function writeEntry(key, value) {
     if (value.const) {
-      let typeName = resolveType(state, value.type, generics);
+      let type = resolveType(state, value.type, generics);
       let valueStr = JSON.stringify(value.value);
-      codeGen.pushTypeEncode(valueStr, typeName);
-      codeGen.pushTypeDecode('assertValue', typeName, true);
+      codeGen.pushTypeEncode(valueStr, type);
+      codeGen.pushTypeDecode('assertValue', type, true);
       // TODO Actually assert the value
       // decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
     } else {
-      let typeName = resolveType(state, value, generics);
-      codeGen.pushType(`#value#[${key}]`, typeName);
+      let type = resolveType(state, value, generics);
+      codeGen.pushType(`#value#[${key}]`, type);
     }
   }
   switch (ast.subType) {
