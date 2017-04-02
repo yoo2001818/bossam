@@ -1,4 +1,5 @@
 import getIdentifier from './util/getIdentifier';
+import findNumberType from './util/findNumberType';
 
 function match(state, matches) {
   // Try to match the type
@@ -60,10 +61,11 @@ function defineEnum(state) {
   let exited = false;
   let index = 0;
   // Pull enum target for structs
+  data.typeTarget = 'type';
   if (pullIf(state, 'parenOpen')) {
-    data.typeTarget = getVariable(state);
+    data.typeType = getType(state, data.generics);
     if (pullIf(state, 'comma')) {
-      data.typeType = getType(state, data.generics);
+      data.typeTarget = getVariable(state);
     }
     pull(state, 'parenClose');
   }
@@ -139,6 +141,26 @@ function defineEnum(state) {
     pullIf(state, 'comma', next);
   }
   next();
+  if (data.subType === 'array') delete data.typeTarget;
+  // Choose right type if not provided
+  if (data.typeType == null) {
+    switch (data.strategy) {
+      case 'match': {
+        // Get largest value; then get the type.
+        let value = data.entries.reduce(([key], prev) =>
+          key > prev ? key : prev);
+        data.typeType = { name: findNumberType(value) };
+        break;
+      }
+      case 'object': {
+        data.typeType = { name: 'String' };
+        break;
+      }
+      case 'array': {
+        data.typeType = { name: findNumberType(data.entries.length) };
+      }
+    }
+  }
   if (data.subType == null) data.subType = 'empty';
   if (!exited) pull(state, 'curlyClose');
   return data;

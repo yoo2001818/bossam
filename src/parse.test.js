@@ -32,7 +32,7 @@ describe('parse', () => {
       }
     `));
     parse(tokenize(`
-      enum Pos(type) {
+      enum Pos(i8, type) {
         TwoDimension {
           x: i32,
           y: i32,
@@ -109,6 +109,7 @@ describe('parse', () => {
         type: 'enum',
         subType: 'array',
         strategy: 'array',
+        typeType: { name: 'u8' },
         namespace,
         entries,
       },
