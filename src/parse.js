@@ -127,7 +127,8 @@ function defineEnum(state) {
     } else if (data.strategy !== strategy) {
       throw new Error('Enum indexing type can\'t be mixed');
     }
-    data.namespace[getIdentifier(value)] = value;
+    let valueName = getIdentifier(value);
+    data.namespace[valueName] = value;
     value.enumKey = key;
     // Don't use strategy - it's useless since the code compiles into
     // switch clauses.
@@ -144,7 +145,7 @@ function defineEnum(state) {
         break;
     }
     */
-    data.entries.push([key, value]);
+    data.entries.push([key, valueName]);
     pullIf(state, 'comma', next);
   }
   next();

@@ -95,7 +95,6 @@ describe('parse', () => {
         enumKey: 2,
       },
     };
-    let entries = Object.keys(namespace).map(v => namespace[v]);
     expect(parse(tokenize(`
       enum Test<A, B, C> {
         A(A),
@@ -111,7 +110,11 @@ describe('parse', () => {
         strategy: 'array',
         typeType: { name: 'u8' },
         namespace,
-        entries,
+        entries: [
+          [0, 'A'],
+          [1, 'B'],
+          [2, 'C'],
+        ],
       },
     });
   });

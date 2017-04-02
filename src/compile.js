@@ -28,6 +28,18 @@ export function assert(expected, received) {
 }
 
 function resolveType(state, type, parentGenerics) {
+  if (Array.isArray(type)) {
+    // Namespaces are hard to handle. Nevertheless, we need to implement them
+    // to implement enums.
+    // If an array is provided, we need to resolve AST / namespace in order,
+    // returning valid object with that name.
+    // Thus, we need to refactor the old code to use returned object itself,
+    // not the key.
+    // Also, resolveBlock should be able to distinguish local scope and
+    // global scope, allowing to use global namespace if local namespace
+    // doesn't have the requested entry.
+    throw new Error('Not implemented yet');
+  }
   let resolvedType = type;
   if (type.generic === true) resolvedType = parentGenerics[type.name];
   return resolveBlock(state, resolvedType.name,
@@ -78,6 +90,9 @@ function resolveBlock(state, name, generics, parentGenerics) {
 function compileBlock(state, astBlock, generics) {
   if (astBlock.type === 'struct') {
     return compileStruct(state, astBlock, generics);
+  }
+  if (astBlock.type === 'enum') {
+    // return compileEnum(state, astBlock, generics);
   }
   throw new Error('Unknown type ' + astBlock.type);
 }

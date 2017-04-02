@@ -46,4 +46,11 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile empty enums', () => {
+    compile(parse(tokenize(`
+      enum Test {
+        A, B, C,
+      }
+    `)));
+  });
 });
