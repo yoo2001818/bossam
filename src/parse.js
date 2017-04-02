@@ -110,7 +110,8 @@ function defineEnum(state) {
     }
     if (data.strategy == null) {
       data.strategy = strategy;
-      // Set up indexes
+      data.entries = [];
+      /*
       switch (strategy) {
         case 'match':
           data.entries = [];
@@ -122,11 +123,15 @@ function defineEnum(state) {
           data.entries = [];
           break;
       }
+      */
     } else if (data.strategy !== strategy) {
       throw new Error('Enum indexing type can\'t be mixed');
     }
     data.namespace[getIdentifier(value)] = value;
     value.enumKey = key;
+    // Don't use strategy - it's useless since the code compiles into
+    // switch clauses.
+    /*
     switch (strategy) {
       case 'match':
         data.entries.push([key, value]);
@@ -138,6 +143,8 @@ function defineEnum(state) {
         data.entries.push(value);
         break;
     }
+    */
+    data.entries.push([key, value]);
     pullIf(state, 'comma', next);
   }
   next();
