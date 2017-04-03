@@ -155,8 +155,8 @@ function defineEnum(state) {
     switch (data.strategy) {
       case 'match': {
         // Get largest value; then get the type.
-        let value = data.entries.reduce(([key], prev) =>
-          key > prev ? key : prev);
+        let value = data.entries.reduce((prev, [key]) =>
+          key > prev ? key : prev, -Infinity);
         data.typeType = { name: findNumberType(value) };
         break;
       }

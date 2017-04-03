@@ -38,7 +38,7 @@ function resolveType(state, type, parentGenerics) {
     // resolveBlock should be able to distinguish local scope and
     // global scope, allowing to use global namespace if local namespace
     // doesn't have the requested entry.
-    return resolvedType.reduce((typeVal, prev, i) => {
+    return resolvedType.reduce((prev, typeVal, i) => {
       // Start from root; narrow down to right entry. Repeat until the end.
       // parentGenerics should be same all the time.
       let resolvedTypeVal = typeVal;

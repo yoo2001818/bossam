@@ -71,4 +71,13 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile enums with integer matches', () => {
+    compile(parse(tokenize(`
+      enum Point {
+        0xDEADCAFE => TwoDimension { x: i32, y: i32 },
+        0xCAFEDEAD => ThreeDimension { x: i32, y: i32, z: i32 },
+        0xCAFEBABE => FourDimension { x: i32, y: i32, z: i32, w: i32 },
+      }
+    `)));
+  });
 });
