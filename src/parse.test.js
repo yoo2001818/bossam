@@ -19,9 +19,9 @@ describe('parse', () => {
     expect(() => parse(tokenize('enum Test {A(i32), B {a: i32}}'))).toThrow();
     parse(tokenize(`
       enum Test {
-        Hello(i32, u32, u32),
+        Hello("hello", i32, u32, u32),
         Gaa,
-        Goo(str),
+        Goo("goo", str),
       }
     `));
     parse(tokenize(`
@@ -34,10 +34,12 @@ describe('parse', () => {
     parse(tokenize(`
       enum Pos(i8, type) {
         TwoDimension {
+          type: "2d",
           x: i32,
           y: i32,
         },
         ThreeDimension {
+          type: "3d",
           x: i32,
           y: i32,
           z: i32,

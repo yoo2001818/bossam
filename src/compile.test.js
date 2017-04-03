@@ -65,7 +65,7 @@ describe('compile', () => {
   it('should compile struct enums', () => {
     compile(parse(tokenize(`
       enum Point {
-        TwoDimension { x: i32, y: i32 },
+        TwoDimension { type: "2d", x: i32, y: i32 },
         ThreeDimension { x: i32, y: i32, z: i32 },
         FourDimension { x: i32, y: i32, z: i32, w: i32 },
       }
@@ -77,6 +77,15 @@ describe('compile', () => {
         0xDEADCAFE => TwoDimension { x: i32, y: i32 },
         0xCAFEDEAD => ThreeDimension { x: i32, y: i32, z: i32 },
         0xCAFEBABE => FourDimension { x: i32, y: i32, z: i32, w: i32 },
+      }
+    `)));
+  });
+  it('should compile enums with string matches', () => {
+    compile(parse(tokenize(`
+      enum Point {
+        "2d" => TwoDimension { x: i32, y: i32 },
+        "3d" => ThreeDimension { x: i32, y: i32, z: i32 },
+        "4d" => FourDimension { x: i32, y: i32, z: i32, w: i32 },
       }
     `)));
   });

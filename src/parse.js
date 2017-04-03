@@ -201,7 +201,19 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
         state.push(token);
         let name = getVariable(state);
         pull(state, 'colon');
-        let type = getType(state, generics);
+        let type = getType(state, generics, (state, token) => {
+          // If string or number is given, process it as a const value on
+          // JS side. Only integer and string is supported for now, though.
+          // TODO Put this onto getType?
+          state.push(token);
+          function processValue(state, token) {
+            return { jsConst: true, value: token.value };
+          }
+          return match(state, {
+            string: processValue,
+            number: processValue,
+          });
+        });
         data.keys.push(name);
         data.values[name] = type;
         return pullIf(state, 'comma', next);
@@ -265,7 +277,7 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
   });
 }
 
-function getType(state, generics) {
+function getType(state, generics, elseCallback) {
   // Read keyword or paren. If paren is specified, that means a tuple is
   // specified.
   return match(state, {
@@ -311,6 +323,7 @@ function getType(state, generics) {
       pull(state, 'squareClose');
       return data;
     },
+    else: elseCallback,
   });
 }
 

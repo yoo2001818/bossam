@@ -100,12 +100,14 @@ function resolveBlock(state, name, generics, parentGenerics) {
       // we can just call compileBlock with correct generics. Done!
       return compileBlock(state, astBlock, generics, namespace);
     };
+    namespace[key].ast = astBlock;
     return namespace[key];
   }
   // Otherwise, just compile it!
   let result = compileBlock(state.root || state, astBlock, genericsData,
     namespace[key].namespace);
   result.name = key;
+  result.ast = astBlock.ast || astBlock;
   // If the AST has namespace definition, move previous namespace definition
   // in locked object onto the result object.
   if (astBlock.namespace != null) result.namespace = namespace[key].namespace;
@@ -132,7 +134,9 @@ function compileStruct(state, ast, generics) {
   // TODO We can directly reference functions; but since that's complicated,
   // just use indirect reference now
   function writeEntry(key, value) {
-    if (value.const) {
+    if (value.jsConst) {
+      codeGen.pushDecode(`#value#[${key}] = ${JSON.stringify(value.value)};`);
+    } else if (value.const) {
       let type = resolveType(state, value.type, generics);
       let valueStr = JSON.stringify(value.value);
       codeGen.pushTypeEncode(valueStr, type);
@@ -218,7 +222,10 @@ function compileEnum(state, ast, generics, namespace) {
     if (ast.subType === 'array') {
       codeGen.pushDecode(`${varOut}.unshift(${valueNameStr});`);
     } else {
-      codeGen.pushDecode(`${varOut}[${typeRef}] = ${valueNameStr};`);
+      // Don't set type if it's already set.
+      if (type.ast.values[ast.typeTarget] == null) {
+        codeGen.pushDecode(`${varOut}[${typeRef}] = ${valueNameStr};`);
+      }
     }
     codeGen.push('break;');
   });
