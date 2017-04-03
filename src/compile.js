@@ -197,11 +197,7 @@ function compileEnum(state, ast, generics, namespace) {
   let typeType = resolveType(state, ast.typeType, generics);
   let localState = { root: state, namespace, ast: ast.namespace };
   codeGen.push(`var ${varOut};`);
-  if (ast.subType === 'array') {
-    codeGen.pushEncode(`${varOut} = #value#.slice(1);`);
-  } else {
-    codeGen.pushEncode(`${varOut} = #value#;`);
-  }
+  codeGen.pushEncode(`${varOut} = #value#;`);
   codeGen.pushTypeDecode(varName, typeType, true);
   codeGen.pushEncode(`switch (#value#[${typeRef}]) {`);
   codeGen.pushDecode(`switch (${varName}) {`);
@@ -209,23 +205,33 @@ function compileEnum(state, ast, generics, namespace) {
   ast.entries.forEach(([key, valueName]) => {
     let keyStr = JSON.stringify(key);
     let valueNameStr = JSON.stringify(valueName);
+    let type = resolveType(localState, { name: valueName }, generics);
+    if (ast.subType === 'array' && type.ast.keys[0].jsConst) {
+      valueNameStr = JSON.stringify(type.ast.keys[0].value);
+    } else if (type.ast.values != null &&
+      type.ast.values[ast.typeTarget] != null
+    ) {
+      valueNameStr = JSON.stringify(type.ast.values[ast.typeTarget].value);
+    }
     codeGen.pushEncode(`case ${valueNameStr}:`);
     codeGen.pushDecode(`case ${keyStr}:`);
     // Encode the type; this is already done in decoder.
     codeGen.pushTypeEncode(keyStr, typeType);
+    // Slice header if const is not specified at front.
+    if (ast.subType === 'array' && !type.ast.keys[0].jsConst) {
+      codeGen.pushEncode(`${varOut} = #value#.slice(0);`);
+    }
     // Now, encode / decode the value.
-    let type = resolveType(localState, { name: valueName }, generics);
     // If the value is array, we have to increment each key. This is
     // not possible yet, so we'll just use temporary variable to store the
     // result, then concat with the old array.
     codeGen.pushType(varOut, type);
-    if (ast.subType === 'array') {
+    if (ast.subType === 'array' && !type.ast.keys[0].jsConst) {
       codeGen.pushDecode(`${varOut}.unshift(${valueNameStr});`);
-    } else {
-      // Don't set type if it's already set.
-      if (type.ast.values[ast.typeTarget] == null) {
-        codeGen.pushDecode(`${varOut}[${typeRef}] = ${valueNameStr};`);
-      }
+    } else if (type.ast.values == null ||
+      type.ast.values[ast.typeTarget] == null
+    ) {
+      codeGen.pushDecode(`${varOut}[${typeRef}] = ${valueNameStr};`);
     }
     codeGen.push('break;');
   });
