@@ -28,20 +28,42 @@ export function assert(expected, received) {
 }
 
 function resolveType(state, type, parentGenerics) {
-  if (Array.isArray(type)) {
+  let resolvedType = type;
+  if (type.generic === true) resolvedType = parentGenerics[type.name];
+  if (Array.isArray(resolvedType)) {
     // Namespaces are hard to handle. Nevertheless, we need to implement them
     // to implement enums.
     // If an array is provided, we need to resolve AST / namespace in order,
     // returning valid object with that name.
-    // Thus, we need to refactor the old code to use returned object itself,
-    // not the key.
-    // Also, resolveBlock should be able to distinguish local scope and
+    // resolveBlock should be able to distinguish local scope and
     // global scope, allowing to use global namespace if local namespace
     // doesn't have the requested entry.
-    throw new Error('Not implemented yet');
+    return resolvedType.reduce((typeVal, prev, i) => {
+      // Start from root; narrow down to right entry. Repeat until the end.
+      // parentGenerics should be same all the time.
+      let resolvedTypeVal = typeVal;
+      if (typeVal.generic === true) {
+        resolvedTypeVal = parentGenerics[typeVal.name];
+      }
+      let astKey = getIdentifier({ name: resolvedTypeVal.name },
+        resolvedTypeVal.generics.map(() => '_'));
+      let block = resolveBlock(prev, resolvedTypeVal.name,
+        resolvedTypeVal.generics, parentGenerics);
+      if (i === resolvedType.length - 1) {
+        // Done! Directly return the block.
+        return block;
+      } else {
+        // Descend...
+        return {
+          // Store 'root' object to use in compiling mode; compilers have to
+          // refer root namespace directly.
+          root: prev.root || prev,
+          namespace: block.namespace,
+          ast: prev.ast[astKey],
+        };
+      }
+    }, state);
   }
-  let resolvedType = type;
-  if (type.generic === true) resolvedType = parentGenerics[type.name];
   return resolveBlock(state, resolvedType.name,
     resolvedType.generics, parentGenerics);
 }
@@ -60,10 +82,8 @@ function resolveBlock(state, name, generics, parentGenerics) {
     let template = resolveBlock(state,
       getIdentifier({ name }, generics.map(() => '_')));
     if (template == null) throw new Error(`${key} is not defined`);
-    let result = template(genericsData, state);
-    result.name = key;
-    namespace[key] = result;
-    return result;
+    // Swap the astBlock to the template and continue.
+    astBlock = template;
   } else if (astBlock == null && namespace[key] == null) {
     throw new Error(`${key} is not defined`);
   }
@@ -71,31 +91,38 @@ function resolveBlock(state, name, generics, parentGenerics) {
   if (namespace[key] != null) return namespace[key];
   // 'Lock' the output object to avoid stack overflow. Any other functions
   // meeting this locked object will use proxy objects instead.
-  namespace[key] = { name: key, locked: true };
+  namespace[key] = { name: key, locked: true, namespace: {} };
   // If 'generics' is not defined and the block uses generics, return a
   // function that compiles the block using generics.
   if (generics == null && astBlock.generics != null) {
-    namespace[key] = (generics) => {
+    namespace[key] = (state, generics, namespace) => {
       // Since the generics variable is already processed by parentGenerics,
       // we can just call compileBlock with correct generics. Done!
-      return compileBlock(state, astBlock, generics);
+      return compileBlock(state, astBlock, generics, namespace);
     };
     return namespace[key];
   }
   // Otherwise, just compile it!
-  let result = compileBlock(state, astBlock, genericsData);
+  let result = compileBlock(state.root || state, astBlock, genericsData,
+    namespace[key].namespace);
   result.name = key;
+  // If the AST has namespace definition, move previous namespace definition
+  // in locked object onto the result object.
+  if (astBlock.namespace != null) result.namespace = namespace[key].namespace;
   namespace[key] = result;
   return result;
 }
 
 // Assume that everything is compiled at this moment.
-function compileBlock(state, astBlock, generics) {
+function compileBlock(state, astBlock, generics, namespace) {
+  if (typeof astBlock === 'function') {
+    return astBlock(state, generics, namespace);
+  }
   if (astBlock.type === 'struct') {
     return compileStruct(state, astBlock, generics);
   }
   if (astBlock.type === 'enum') {
-    // return compileEnum(state, astBlock, generics);
+    return compileEnum(state, astBlock, generics, namespace);
   }
   throw new Error('Unknown type ' + astBlock.type);
 }
@@ -148,5 +175,53 @@ function compileStruct(state, ast, generics) {
       break;
     }
   }
+  return codeGen.compile();
+}
+
+function compileEnum(state, ast, generics, namespace) {
+  // Create a code generator, then loop for every entry in the entries list,
+  // compile them into switch loop.
+  let codeGen = new CodeGenerator(state);
+  let typeRef = JSON.stringify(ast.typeTarget);
+  if (ast.subType === 'array') typeRef = '0';
+  // We have to build encode / decode routine separately - they can't be shared.
+  // TODO Support nulls? Although it's not necessary at all, but it'd be good
+  // if we can support it.
+  // Read the type object.
+  let varName = 'enumType' + (Math.random() * 100000 | 0);
+  let varOut = 'enumType' + (Math.random() * 100000 | 0);
+  let typeType = resolveType(state, ast.typeType, generics);
+  let localState = { root: state, namespace, ast: ast.namespace };
+  codeGen.push(`var ${varOut};`);
+  if (ast.subType === 'array') {
+    codeGen.pushEncode(`${varOut} = #value#.slice(1);`);
+  } else {
+    codeGen.pushEncode(`${varOut} = #value#;`);
+  }
+  codeGen.pushTypeDecode(varName, typeType, true);
+  codeGen.pushEncode(`switch (#value#[${typeRef}]) {`);
+  codeGen.pushDecode(`switch (${varName}) {`);
+  // Now, insert case clauses using for loop.
+  ast.entries.forEach(([key, valueName]) => {
+    let keyStr = JSON.stringify(key);
+    let valueNameStr = JSON.stringify(valueName);
+    codeGen.pushEncode(`case ${valueNameStr}:`);
+    codeGen.pushDecode(`case ${keyStr}:`);
+    // Encode the type; this is already done in decoder.
+    codeGen.pushTypeEncode(keyStr, typeType);
+    // Now, encode / decode the value.
+    let type = resolveType(localState, { name: valueName }, generics);
+    // If the value is array, we have to increment each key. This is
+    // not possible yet, so we'll just use temporary variable to store the
+    // result, then concat with the old array.
+    codeGen.pushType(varOut, type);
+    if (ast.subType === 'array') {
+      codeGen.pushDecode(`${varOut}.unshift(${valueNameStr});`);
+    } else {
+      codeGen.pushDecode(`${varOut}[${typeRef}] = ${valueNameStr};`);
+    }
+    codeGen.push('break;');
+  });
+  codeGen.push('}');
   return codeGen.compile();
 }
