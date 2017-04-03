@@ -53,4 +53,22 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile tuple enums', () => {
+    compile(parse(tokenize(`
+      enum Test {
+        A(i32, u32, u8),
+        B(String, i32),
+        C(i32),
+      }
+    `)));
+  });
+  it('should compile struct enums', () => {
+    compile(parse(tokenize(`
+      enum Point {
+        TwoDimension { x: i32, y: i32 },
+        ThreeDimension { x: i32, y: i32, z: i32 },
+        FourDimension { x: i32, y: i32, z: i32, w: i32 },
+      }
+    `)));
+  });
 });

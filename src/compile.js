@@ -153,7 +153,7 @@ function compileStruct(state, ast, generics) {
         if (typeof key === 'object' && key.const) {
           writeEntry(null, key);
         } else {
-          writeEntry(`'${key}'`, ast.values[key]);
+          writeEntry(`"${key}"`, ast.values[key]);
         }
       });
       break;
@@ -189,7 +189,7 @@ function compileEnum(state, ast, generics, namespace) {
   // if we can support it.
   // Read the type object.
   let varName = 'enumType' + (Math.random() * 100000 | 0);
-  let varOut = 'enumType' + (Math.random() * 100000 | 0);
+  let varOut = 'enumData' + (Math.random() * 100000 | 0);
   let typeType = resolveType(state, ast.typeType, generics);
   let localState = { root: state, namespace, ast: ast.namespace };
   codeGen.push(`var ${varOut};`);
@@ -223,5 +223,6 @@ function compileEnum(state, ast, generics, namespace) {
     codeGen.push('break;');
   });
   codeGen.push('}');
+  codeGen.pushDecode(`#value# = ${varOut};`);
   return codeGen.compile();
 }

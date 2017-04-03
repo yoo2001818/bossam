@@ -55,7 +55,7 @@ const builtInNamespace = {
     encodeCode: 'dataView.setUint32(#value#);\n',
     decodeCode: '#value# = dataView.getUint32();\n',
   },
-  'Array<_>': (state, localState, generics) => {
+  'Array<_>': (state, generics) => {
     let type = state.resolveType(generics[0]);
     let numType = state.resolveType({ name: 'u32' });
     let codeGen = new CodeGenerator(state);
