@@ -215,19 +215,21 @@ function compileEnum(state, ast, generics, namespace) {
     }
     codeGen.pushEncode(`case ${valueNameStr}:`);
     codeGen.pushDecode(`case ${keyStr}:`);
-    // Encode the type; this is already done in decoder.
-    codeGen.pushTypeEncode(keyStr, typeType);
     // Slice header if const is not specified at front.
     if (ast.subType === 'array' && !type.ast.keys[0].jsConst) {
       codeGen.pushEncode(`${varOut} = #value#.slice(0);`);
     }
+    // Encode the type; this is already done in decoder.
+    codeGen.pushTypeEncode(keyStr, typeType);
     // Now, encode / decode the value.
     // If the value is array, we have to increment each key. This is
     // not possible yet, so we'll just use temporary variable to store the
     // result, then concat with the old array.
     codeGen.pushType(varOut, type);
-    if (ast.subType === 'array' && !type.ast.keys[0].jsConst) {
-      codeGen.pushDecode(`${varOut}.unshift(${valueNameStr});`);
+    if (ast.subType === 'array') {
+      if (!type.ast.keys[0].jsConst) {
+        codeGen.pushDecode(`${varOut}.unshift(${valueNameStr});`);
+      }
     } else if (type.ast.values == null ||
       type.ast.values[ast.typeTarget] == null
     ) {

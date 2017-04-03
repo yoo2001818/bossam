@@ -56,7 +56,7 @@ describe('compile', () => {
   it('should compile tuple enums', () => {
     compile(parse(tokenize(`
       enum Test {
-        A(i32, u32, u8),
+        A("a", i32, u32, u8),
         B(String, i32),
         C(i32),
       }

@@ -7,7 +7,7 @@ enum Message(type) {
   Leave,
 }
 
-struct MessageContainer("msg": str, u8, Message);
+struct MessageContainer("msg", u8, Message);
 
 struct Packet {
   // This is used to check magic numbers. It only supports big endian - as

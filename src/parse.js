@@ -234,26 +234,9 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
       data.subType = 'array';
       // Quite simple, since we just need to accept keywords again and again.
       data.keys = [];
-      function processKeyword(state, token) {
-        state.push(token);
+      function next() {
         data.keys.push(getType(state, generics));
         return pullIf(state, 'comma', next);
-      }
-      function processValue(state, token) {
-        let value = token.value;
-        // Use colons to save types, as both value and type must be provided
-        pull(state, 'colon');
-        let type = getType(state, generics);
-        // Don't put it in values.
-        data.keys.push({ const: true, type, value });
-        return pullIf(state, 'comma', next);
-      }
-      function next() {
-        return match(state, {
-          keyword: processKeyword,
-          string: processValue,
-          number: processValue,
-        });
       }
       next();
       // Close the paren...
