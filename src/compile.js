@@ -46,7 +46,7 @@ function resolveType(state, type, parentGenerics) {
         resolvedTypeVal = parentGenerics[typeVal.name];
       }
       let astKey = getIdentifier({ name: resolvedTypeVal.name },
-        resolvedTypeVal.generics.map(() => '_'));
+        resolvedTypeVal.generics && resolvedTypeVal.generics.map(() => '_'));
       let block = resolveBlock(prev, resolvedTypeVal.name,
         resolvedTypeVal.generics, parentGenerics);
       if (i === resolvedType.length - 1) {

@@ -89,4 +89,16 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile structs referencing enum structs', () => {
+    compile(parse(tokenize(`
+      enum Point {
+        TwoDimension { x: i32, y: i32 },
+        ThreeDimension { x: i32, y: i32, z: i32 },
+        FourDimension { x: i32, y: i32, z: i32, w: i32 },
+      }
+      struct Test {
+        pos: Point.TwoDimension,
+      }
+    `)));
+  });
 });
