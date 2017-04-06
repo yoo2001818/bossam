@@ -34,6 +34,7 @@ const SYNTAX_TABLE = {
     [/\./g, Token('period')],
     [/:/g, Token('colon')],
     [/;/g, Token('semicolon')],
+    [/?/g, Token('question')],
     [/\s+/g, NoOp],
   ],
   commentBlock: [

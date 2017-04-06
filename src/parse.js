@@ -259,22 +259,28 @@ function getType(state, generics) {
       // If the next token is period, that means a namespace is specified,
       // so resolve it. However, since only 1 level is supported for now,
       // we can just check single level.
+      state.push(token);
+      let topNode = getName(state, generics);
       return match(state, {
-        else: (state, tokenNext) => {
+        else: (state, token) => {
           // Restore tokens, then just process as name. :P
           state.push(token);
-          state.push(tokenNext);
-          return getName(state, generics);
+          return topNode;
         },
         period: (state) => {
           let data = getName(state, generics);
-          data.name = [token.name, data.name];
-          return data;
+          return [topNode, data];
         },
       });
     },
+    question: (state) => {
+      // Process a nullable type.
+      let type = getType(state, generics);
+      type.nullable = true;
+      return type;
+    },
     parenOpen: (state) => {
-      // Process tuple.
+      // Process a tuple.
       let result = [];
       function next() {
         // Receive a keyword...
