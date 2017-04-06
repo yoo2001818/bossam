@@ -65,6 +65,9 @@ export default class CodeGenerator {
       encodeCode: this.encodeCode.join('\n') + '\n',
       decodeCode: this.decodeCode.join('\n') + '\n',
     };
+    console.log(output.sizeCode);
+    console.log(output.encodeCode);
+    console.log(output.decodeCode);
     // Simply swap #value# with value and we're good to go.
     output.size = new Function('value',
       'var size = 0;\n' +
@@ -87,9 +90,6 @@ export default class CodeGenerator {
     output.decode = (buffer) => {
       return output.decodeImpl(new DataBuffer(new DataView(buffer)));
     };
-    console.log(output.sizeCode);
-    console.log(output.encodeCode);
-    console.log(output.decodeCode);
     return output;
   }
 }

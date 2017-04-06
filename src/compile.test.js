@@ -101,4 +101,17 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile nullable types', () => {
+    compile(parse(tokenize(`
+      struct Pos {
+        x: ?i32,
+        y: ?i16,
+        name: ?String,
+      }
+      struct Test {
+        pos: Pos,
+        pos2: ?Pos,
+      }
+    `)));
+  });
 });

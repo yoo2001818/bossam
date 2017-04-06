@@ -1,4 +1,3 @@
-import DataBuffer from './dataBuffer';
 import createNamespace from './namespace';
 import getIdentifier from './util/getIdentifier';
 import CodeGenerator from './util/codeGenerator';
@@ -145,7 +144,21 @@ function compileStruct(state, ast, generics) {
       // decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
     } else {
       let type = resolveType(state, value, generics);
-      codeGen.pushType(`#value#[${key}]`, type);
+      // If the type is nullable, read a byte to check if the data exists.
+      if (value.nullable) {
+        // TODO We can compact the size by putting 8 null flags onto
+        // single byte.
+        let u8 = resolveType(state, { name: 'u8' });
+        let fieldName = 'nullCheck' + (Math.random() * 100000 | 0);
+        codeGen.pushEncode(
+          `var ${fieldName} = #value#[${key}] == null ? 1 : 0;`);
+        codeGen.pushType(fieldName, u8, true);
+        codeGen.push(`if (${fieldName} !== 0) {`);
+        codeGen.pushType(`#value#[${key}]`, type);
+        codeGen.push('}');
+      } else {
+        codeGen.pushType(`#value#[${key}]`, type);
+      }
     }
   }
   switch (ast.subType) {
