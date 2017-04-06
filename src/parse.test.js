@@ -120,6 +120,9 @@ describe('parse', () => {
       },
     });
   });
+  it('should parse nullable types', () => {
+    parse(tokenize('struct Test { a: ?i32, b: ?i32 }'));
+  });
   it('should parse test code', () => {
     parse(tokenize(fs.readFileSync('./test.bsm', 'utf-8')));
   });

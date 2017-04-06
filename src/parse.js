@@ -273,8 +273,14 @@ function getType(state, generics) {
         },
       });
     },
+    question: (state) => {
+      // Process a nullable type.
+      let type = getType(state, generics);
+      type.nullable = true;
+      return type;
+    },
     parenOpen: (state) => {
-      // Process tuple.
+      // Process a tuple.
       let result = [];
       function next() {
         // Receive a keyword...
