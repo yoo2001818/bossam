@@ -3,7 +3,6 @@ import getIdentifier from './util/getIdentifier';
 import CodeGenerator from './util/codeGenerator';
 
 export default function compile(ast, namespace = createNamespace()) {
-  console.log(JSON.stringify(ast, null, 2));
   // Create compiler state.
   let state = { ast, namespace };
   state.resolveType = resolveType.bind(null, state);
@@ -17,6 +16,7 @@ export default function compile(ast, namespace = createNamespace()) {
   for (let key in ast) {
     resolveBlock(state, key);
   }
+  return namespace;
 }
 
 export function assert(expected, received) {
