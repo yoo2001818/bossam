@@ -130,8 +130,34 @@ function compileBlock(state, astBlock, generics, namespace) {
 
 function compileStruct(state, ast, generics) {
   let codeGen = new CodeGenerator(state);
-  // TODO We can directly reference functions; but since that's complicated,
-  // just use indirect reference now
+  let nullableCount = 0;
+  let nullFieldName = 'nullCheck' + (Math.random() * 100000 | 0);
+  function writeNullable(key, value) {
+    if (value.nullable) {
+      let bytePos = (nullableCount / 8) | 0;
+      let fieldName = nullFieldName + bytePos;
+      if (nullableCount % 8 === 0) {
+        let u8 = resolveType(state, { name: 'u8' });
+        codeGen.pushTypeDecode(fieldName, u8, true);
+        if (bytePos > 0) {
+          codeGen.pushTypeEncode(nullFieldName + (bytePos - 1), u8);
+        }
+        codeGen.pushEncode(`var ${fieldName} = 0;`);
+      }
+      let shiftPos = 1 << (nullableCount % 8);
+      codeGen.pushEncode(
+        `${fieldName} |= #value#[${key}] != null ? ${shiftPos} : 0;`);
+      nullableCount++;
+    }
+  }
+  function finalizeNullable() {
+    if (nullableCount > 0) {
+      let bytePos = (nullableCount / 8) | 0;
+      let u8 = resolveType(state, { name: 'u8' });
+      codeGen.pushTypeEncode(nullFieldName + bytePos, u8);
+    }
+    nullableCount = 0;
+  }
   function writeEntry(key, value) {
     if (value.jsConst) {
       codeGen.pushDecode(`#value#[${key}] = ${JSON.stringify(value.value)};`);
@@ -146,16 +172,13 @@ function compileStruct(state, ast, generics) {
       let type = resolveType(state, value, generics);
       // If the type is nullable, read a byte to check if the data exists.
       if (value.nullable) {
-        // TODO We can compact the size by putting 8 null flags onto
-        // single byte.
-        let u8 = resolveType(state, { name: 'u8' });
-        let fieldName = 'nullCheck' + (Math.random() * 100000 | 0);
-        codeGen.pushEncode(
-          `var ${fieldName} = #value#[${key}] == null ? 1 : 0;`);
-        codeGen.pushType(fieldName, u8, true);
-        codeGen.push(`if (${fieldName} !== 0) {`);
+        let bytePos = (nullableCount / 8) | 0;
+        let flagName = nullFieldName + bytePos;
+        let shiftPos = 1 << (nullableCount % 8);
+        codeGen.push(`if ((${flagName} & ${shiftPos}) !== 0) {`);
         codeGen.pushType(`#value#[${key}]`, type);
         codeGen.push('}');
+        nullableCount++;
       } else {
         codeGen.pushType(`#value#[${key}]`, type);
       }
@@ -164,6 +187,12 @@ function compileStruct(state, ast, generics) {
   switch (ast.subType) {
     case 'object': {
       codeGen.pushDecode('#value# = {};');
+      ast.keys.forEach(key => {
+        if (typeof key === 'string') {
+          writeNullable(`"${key}"`, ast.values[key]);
+        }
+      });
+      finalizeNullable();
       ast.keys.forEach(key => {
         // If key is an object, process it separately since it is a const
         // value, not an actual value.
