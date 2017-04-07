@@ -1,4 +1,5 @@
-// TODO Load TextEncoder / TextDecoder polyfill
+import { TextEncoder, TextDecoder } from 'text-encoding';
+
 export default function createStringEncoder() {
   // TODO Because TextEncoder doesn't provide a method to retrieve the size of
   // the string, we should cache the results.
@@ -6,7 +7,7 @@ export default function createStringEncoder() {
   let decoder = new TextDecoder('utf-8');
   return {
     name: 'String',
-    // Deny JIT
+    // Deny inlining the code
     locked: true,
     size: (value) => {
       // Int8Array + u32.
