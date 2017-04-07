@@ -1,4 +1,5 @@
 import CodeGenerator from './util/codeGenerator';
+import createStringEncoder from './util/stringEncoder';
 
 const builtInNamespace = {
   i8: {
@@ -70,10 +71,7 @@ const builtInNamespace = {
     codeGen.push('}');
     return codeGen.compile();
   },
-  String: {
-    name: 'String',
-    locked: true,
-  },
+  String: createStringEncoder(),
 };
 
 // Creates namespace. So simple :P
