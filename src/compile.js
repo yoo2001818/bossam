@@ -150,9 +150,36 @@ function compileArray(state, ast, generics) {
   // Just a downgraded version of Array<T>.
   let type = resolveType(state, ast.type, generics);
   let codeGen = new CodeGenerator();
+  let u8, nullFieldName;
+  let nullable = ast.type.nullable;
+  if (nullable) {
+    // If the type is nullable, we have to use separate nullable fields to
+    // spare some bits
+    u8 = resolveType(state, { name: 'u8' });
+    nullFieldName = 'nullCheck' + (Math.random() * 100000 | 0);
+    codeGen.push(`var ${nullFieldName} = 0;`);
+  }
   codeGen.pushDecode(`#value# = new Array(${ast.size});`);
   codeGen.push(`for (var i = 0; i < ${ast.size}; ++i) {`);
+  if (nullable) {
+    // To match with decoding order, encoder must look ahead of the array
+    // and save flags beforehand.
+    codeGen.push('if (i % 8 === 0) {');
+    codeGen.pushEncode(`${nullFieldName} = 0;`);
+    codeGen.pushEncode(`var maxIdx = Math.min(8, ${ast.size} - i);`);
+    codeGen.pushEncode('for (var j = 0; j < maxIdx; ++j) {');
+    // Check flag / insert flag.
+    codeGen.pushEncode(
+      `${nullFieldName} |= #value#[i + j] == null ? 0 : (1 << j);`);
+    codeGen.pushEncode('}');
+    codeGen.pushType(nullFieldName, u8);
+    codeGen.push('}');
+    codeGen.push(`if (${nullFieldName} & (1 << (i % 8)) !== 0) {`);
+  }
   codeGen.pushType('#value#[i]', type);
+  if (nullable) {
+    codeGen.push('}');
+  }
   codeGen.push('}');
   return codeGen.compile();
 }

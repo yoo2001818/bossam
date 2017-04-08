@@ -130,6 +130,7 @@ describe('compile', () => {
     compile(parse(tokenize(`
       struct Test {
         abc: [i32; 6],
+        def: [?i32; 6],
       }
     `)));
   });
