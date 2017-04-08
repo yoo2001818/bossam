@@ -33,6 +33,10 @@ function resolveType(state, type, parentGenerics) {
   if (resolvedType.tuple === true) {
     return compileTuple(state, resolvedType, parentGenerics);
   }
+  // Same for arrays.
+  if (resolvedType.array === true) {
+    return compileArray(state, resolvedType, parentGenerics);
+  }
   if (Array.isArray(resolvedType)) {
     // Namespaces are hard to handle. Nevertheless, we need to implement them
     // to implement enums.
@@ -140,6 +144,17 @@ function compileTuple(state, ast, generics) {
     keys: ast.types,
   };
   return compileStruct(state, structAST, generics);
+}
+
+function compileArray(state, ast, generics) {
+  // Just a downgraded version of Array<T>.
+  let type = resolveType(state, ast.type, generics);
+  let codeGen = new CodeGenerator();
+  codeGen.pushDecode(`#value# = new Array(${ast.size});`);
+  codeGen.push(`for (var i = 0; i < ${ast.size}; ++i) {`);
+  codeGen.pushType('#value#[i]', type);
+  codeGen.push('}');
+  return codeGen.compile();
 }
 
 function compileStruct(state, ast, generics) {

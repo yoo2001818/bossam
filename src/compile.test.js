@@ -126,4 +126,11 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile arrays', () => {
+    compile(parse(tokenize(`
+      struct Test {
+        abc: [i32; 6],
+      }
+    `)));
+  });
 });

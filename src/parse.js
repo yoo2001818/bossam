@@ -296,10 +296,7 @@ function getType(state, generics) {
       let data = { array: true };
       data.type = getType(state, generics);
       pull(state, 'semicolon');
-      match(state, {
-        number: (state, token) => data.size = token.value,
-        keyword: (state, token) => data.size = token.name,
-      });
+      data.size = pull(state, 'number').value;
       pull(state, 'squareClose');
       return data;
     },

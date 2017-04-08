@@ -67,6 +67,13 @@ describe('parse', () => {
       }
     `));
   });
+  it('should parse arrays', () => {
+    parse(tokenize(`
+      struct Test {
+        abc: [i32; 6],
+      }
+    `));
+  });
   it('should parse generics', () => {
     parse(tokenize('struct Test<A, B, C> {}'));
     parse(tokenize('struct Test<A> {}'));

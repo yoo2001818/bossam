@@ -22,9 +22,7 @@ struct Packet {
   parity: char,
   sender: (i32, String),
   time: u64,
-  size: u8,
-  // size must be known before messages
-  messages: [Message; size],
+  messages: [Message; 16],
   checksum: String,
   checksumSize: u16,
   checksum2: str<checksumSize>,
