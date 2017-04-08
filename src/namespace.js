@@ -60,6 +60,15 @@ const builtInNamespace = {
     let type = state.resolveType(generics[0]);
     let numType = state.resolveType({ name: 'u32' });
     let codeGen = new CodeGenerator();
+    let u8, nullFieldName;
+    let nullable = generics[0].nullable;
+    if (nullable) {
+      // If the type is nullable, we have to use separate nullable fields to
+      // spare some bits
+      u8 = state.resolveType({ name: 'u8' });
+      nullFieldName = 'nullCheck' + (Math.random() * 100000 | 0);
+      codeGen.push(`var ${nullFieldName} = 0;`);
+    }
     // TODO Even if it's randomized, maybe it can cause a problem? Not sure yet.
     let varName = 'arraySize' + (Math.random() * 100000 | 0);
     codeGen.pushTypeDecode(varName, numType, true);
@@ -67,7 +76,25 @@ const builtInNamespace = {
     codeGen.pushTypeEncode(varName, numType);
     codeGen.pushDecode(`#value# = new Array(${varName});`);
     codeGen.push(`for (var i = 0; i < ${varName}; ++i) {`);
+    if (nullable) {
+      // To match with decoding order, encoder must look ahead of the array
+      // and save flags beforehand.
+      codeGen.push('if (i % 8 === 0) {');
+      codeGen.pushEncode(`${nullFieldName} = 0;`);
+      codeGen.pushEncode(`var maxIdx = Math.min(8, ${varName} - i);`);
+      codeGen.pushEncode('for (var j = 0; j < maxIdx; ++j) {');
+      // Check flag / insert flag.
+      codeGen.pushEncode(
+        `${nullFieldName} |= #value#[i + j] == null ? 0 : (1 << j);`);
+      codeGen.pushEncode('}');
+      codeGen.pushType(nullFieldName, u8);
+      codeGen.push('}');
+      codeGen.push(`if (${nullFieldName} & (1 << (i % 8)) !== 0) {`);
+    }
     codeGen.pushType('#value#[i]', type);
+    if (nullable) {
+      codeGen.push('}');
+    }
     codeGen.push('}');
     return codeGen.compile();
   },
