@@ -2,8 +2,7 @@ import DataBuffer from '../dataBuffer';
 
 // Generates the code using new Function()
 export default class CodeGenerator {
-  constructor(state) {
-    this.namespace = state.namespace;
+  constructor() {
     this.sizeCode = [];
     this.decodeCode = [];
     this.encodeCode = [];

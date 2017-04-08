@@ -114,4 +114,12 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile tuples', () => {
+    compile(parse(tokenize(`
+      struct Test {
+        abc: (i32, u32, String),
+        def: (Array<i32>, u32),
+      }
+    `)));
+  });
 });

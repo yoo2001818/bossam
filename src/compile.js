@@ -29,6 +29,10 @@ export function assert(expected, received) {
 function resolveType(state, type, parentGenerics) {
   let resolvedType = type;
   if (type.generic === true) resolvedType = parentGenerics[type.name];
+  // If the type is a tuple, Compile it right away.
+  if (resolvedType.tuple === true) {
+    return compileTuple(state, resolvedType, parentGenerics);
+  }
   if (Array.isArray(resolvedType)) {
     // Namespaces are hard to handle. Nevertheless, we need to implement them
     // to implement enums.
@@ -128,8 +132,18 @@ function compileBlock(state, astBlock, generics, namespace) {
   throw new Error('Unknown type ' + astBlock.type);
 }
 
+function compileTuple(state, ast, generics) {
+  // Just convert the AST into struct AST, then we're good to go
+  let structAST = {
+    type: 'struct',
+    subType: 'array',
+    keys: ast.types,
+  };
+  return compileStruct(state, structAST, generics);
+}
+
 function compileStruct(state, ast, generics) {
-  let codeGen = new CodeGenerator(state);
+  let codeGen = new CodeGenerator();
   let nullableCount = 0;
   let nullFieldName = 'nullCheck' + (Math.random() * 100000 | 0);
   function writeNullable(key, value) {
@@ -227,7 +241,7 @@ function compileStruct(state, ast, generics) {
 function compileEnum(state, ast, generics, namespace) {
   // Create a code generator, then loop for every entry in the entries list,
   // compile them into switch loop.
-  let codeGen = new CodeGenerator(state);
+  let codeGen = new CodeGenerator();
   let typeRef = JSON.stringify(ast.typeTarget);
   if (ast.subType === 'array') typeRef = '0';
   // We have to build encode / decode routine separately - they can't be shared.

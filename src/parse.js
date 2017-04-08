@@ -290,7 +290,7 @@ function getType(state, generics) {
       }
       next();
       pull(state, 'parenClose');
-      return result;
+      return { tuple: true, types: result };
     },
     squareOpen: (state) => {
       let data = { array: true };

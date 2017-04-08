@@ -59,7 +59,7 @@ const builtInNamespace = {
   'Array<_>': (state, generics) => {
     let type = state.resolveType(generics[0]);
     let numType = state.resolveType({ name: 'u32' });
-    let codeGen = new CodeGenerator(state);
+    let codeGen = new CodeGenerator();
     // TODO Even if it's randomized, maybe it can cause a problem? Not sure yet.
     let varName = 'arraySize' + (Math.random() * 100000 | 0);
     codeGen.pushTypeDecode(varName, numType, true);

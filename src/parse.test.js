@@ -59,6 +59,14 @@ describe('parse', () => {
       }
     `));
   });
+  it('should parse tuples', () => {
+    parse(tokenize(`
+      struct Test {
+        abc: (i32, u32, String),
+        def: (Array<i32>, u32),
+      }
+    `));
+  });
   it('should parse generics', () => {
     parse(tokenize('struct Test<A, B, C> {}'));
     parse(tokenize('struct Test<A> {}'));
