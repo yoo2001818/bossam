@@ -113,6 +113,10 @@ describe('compile', () => {
         pos2: ?Pos,
       }
     `)));
+    compile(parse(tokenize(`
+      struct Pos(?i32, ?i16, ?String);
+      struct Test(Pos, ?Pos);
+    `)));
   });
   it('should compile tuples', () => {
     compile(parse(tokenize(`

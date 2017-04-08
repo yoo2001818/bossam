@@ -222,6 +222,11 @@ function compileStruct(state, ast, generics) {
       codeGen.pushDecode('#value# = [];');
       let pos = 0;
       ast.keys.forEach(key => {
+        writeNullable(pos++, key);
+      });
+      finalizeNullable();
+      pos = 0;
+      ast.keys.forEach(key => {
         if (key.const) {
           writeEntry(null, key);
         } else {
