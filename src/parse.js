@@ -324,10 +324,11 @@ function getName(state, generics, define) {
     data.generics = [];
     function next() {
       match(state, {
-        keyword: (state, token) => {
+        else: (state, token) => {
           if (define) {
             // If in define mode, use a single keyword.
-            data.generics.push(token.name);
+            state.push(token);
+            data.generics.push(pull(state, 'keyword').name);
           } else {
             state.push(token);
             data.generics.push(getType(state, generics));

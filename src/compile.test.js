@@ -122,7 +122,7 @@ describe('compile', () => {
     compile(parse(tokenize(`
       struct Test {
         abc: (i32, u32, String),
-        def: (Array<i32>, u32),
+        def: (Array<?i32>, u32),
       }
     `)));
   });
