@@ -337,10 +337,10 @@ function getName(state, generics, define) {
         // These two are absurd, however, it is required to specify string's
         // encoding and size.
         string: (state, token) => {
-          data.generics.push({ const: true, value: token.value });
+          data.generics.push({ const: true, name: token.value });
         },
         number: (state, token) => {
-          data.generics.push({ const: true, value: token.value });
+          data.generics.push({ const: true, name: token.value });
         },
       });
       // Continue to next if comma is provided

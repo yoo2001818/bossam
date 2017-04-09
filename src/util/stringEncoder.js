@@ -1,10 +1,10 @@
 import { TextEncoder, TextDecoder } from 'text-encoding';
 
-export default function createStringEncoder() {
+export default function createStringEncoder(charset = 'utf-8') {
   // TODO Because TextEncoder doesn't provide a method to retrieve the size of
   // the string, we should cache the results.
-  let encoder = new TextEncoder('utf-8');
-  let decoder = new TextDecoder('utf-8');
+  let encoder = new TextEncoder(charset);
+  let decoder = new TextDecoder(charset);
   return {
     name: 'String',
     // Deny inlining the code

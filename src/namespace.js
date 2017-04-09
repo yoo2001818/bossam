@@ -116,7 +116,10 @@ const builtInNamespace = {
     codeGen.push('}');
     return codeGen.compile();
   },
-  String: createStringEncoder(),
+  String: createStringEncoder('utf-8'),
+  'String<_>': (state, generics) => {
+    return createStringEncoder(generics[0].name);
+  },
 };
 
 // Creates namespace. So simple :P
