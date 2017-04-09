@@ -56,6 +56,24 @@ const builtInNamespace = {
     encodeCode: 'dataView.setUint32(#value#);\n',
     decodeCode: '#value# = dataView.getUint32();\n',
   },
+  f32: {
+    name: 'f32',
+    size: () => 4,
+    encodeImpl: (value, dataView) => dataView.setFloat32(value),
+    decodeImpl: (dataView) => dataView.getFloat32(),
+    sizeCode: 'size += 4;\n',
+    encodeCode: 'dataView.setFloat32(#value#);\n',
+    decodeCode: '#value# = dataView.getFloat32();\n',
+  },
+  f64: {
+    name: 'f64',
+    size: () => 8,
+    encodeImpl: (value, dataView) => dataView.setFloat64(value),
+    decodeImpl: (dataView) => dataView.getFloat64(),
+    sizeCode: 'size += 8;\n',
+    encodeCode: 'dataView.setFloat64(#value#);\n',
+    decodeCode: '#value# = dataView.getFloat64();\n',
+  },
   'Array<_>': (state, generics) => {
     let type = state.resolveType(generics[0]);
     let numType = state.resolveType({ name: 'u32' });
