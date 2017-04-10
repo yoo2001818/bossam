@@ -24,3 +24,32 @@ export default function createStringEncoder(charset = 'utf-8') {
     },
   };
 }
+
+export function createUTF16StringEncoder(name, littleEndian) {
+  return {
+    name,
+    locked: true,
+    // So deterministic
+    size: (value) => value.length * 2 + 4,
+    encodeImpl: (value, dataView) => {
+      dataView.setUint32(value.length);
+      for (let i = 0; i < value.length; ++i) {
+        dataView.setUint16(value.charCodeAt(i), littleEndian);
+      }
+    },
+    decodeImpl: (dataView) => {
+      let size = dataView.getUint32();
+      // If little endian is provided, we have to convert it word by word.
+      if (littleEndian) {
+        let data = new Uint16Array(size);
+        for (let i = 0; i < size; ++i) {
+          data.push(dataView.getUint16(littleEndian));
+        }
+        return String.fromCharCode.apply(null, data);
+      } else {
+        return String.fromCharCode.apply(null,
+          dataView.getUint16Array(size * 2));
+      }
+    },
+  };
+}

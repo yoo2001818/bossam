@@ -25,6 +25,24 @@ export default class DataBuffer {
     }
     return output;
   }
+  setUint16Array(buffer) {
+    const size = buffer.length;
+    const output = new Uint16Array(this.dataView.buffer, this.position, size);
+    this.position += size;
+    output.set(buffer);
+  }
+  getUint16Array(size, buffer) {
+    const output = new Uint16Array(this.dataView.buffer, this.position, size);
+    this.position += size;
+    if (buffer != null) {
+      if (buffer.length > size) {
+        throw new Error('Buffer size is smaller than required size');
+      }
+      buffer.set(output);
+      return buffer;
+    }
+    return output;
+  }
 }
 
 // Implement each accessor function. Since copy & paste is not preferred,
