@@ -78,7 +78,7 @@ const builtInNamespace = {
   'Array<_>': (state, generics) => {
     let type = state.resolveType(generics[0]);
     let numType = state.resolveType({ name: 'u32' });
-    let codeGen = new CodeGenerator();
+    let codeGen = new CodeGenerator(state);
     let u8, nullFieldName;
     let nullable = generics[0].nullable;
     if (nullable) {

@@ -2,7 +2,8 @@ import DataBuffer from '../dataBuffer';
 
 // Generates the code using new Function()
 export default class CodeGenerator {
-  constructor() {
+  constructor(state) {
+    this.namespace = state.namespace;
     this.sizeCode = [];
     this.decodeCode = [];
     this.encodeCode = [];
@@ -31,7 +32,7 @@ export default class CodeGenerator {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
-      let ref = `namespace['${type.name}']`;
+      let ref = `this['${type.name}']`;
       this.sizeCode.push(`size += ${ref}.size(${keyword});`);
       this.encodeCode.push(`${ref}.encodeImpl(${keyword}, dataView);`);
     } else {
@@ -49,7 +50,7 @@ export default class CodeGenerator {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
-      let ref = `namespace['${type.name}']`;
+      let ref = `this['${type.name}']`;
       this.decodeCode.push(`${keyword} = ${ref}.decodeImpl(dataView);`);
     } else {
       // Or include the code into the output code. :)
@@ -58,27 +59,24 @@ export default class CodeGenerator {
     }
   }
   compile() {
-    const namespace = this.namespace; // eslint-disable-line
+    const namespace = this.namespace;
     let output = {
       sizeCode: this.sizeCode.join('\n') + '\n',
       encodeCode: this.encodeCode.join('\n') + '\n',
       decodeCode: this.decodeCode.join('\n') + '\n',
     };
-    console.log(output.sizeCode);
-    console.log(output.encodeCode);
-    console.log(output.decodeCode);
     // Simply swap #value# with value and we're good to go.
     output.size = new Function('value',
       'var size = 0;\n' +
       output.sizeCode.replace(/#value#/g, 'value') +
-      'return size;\n');
+      'return size;\n').bind(namespace);
     output.encodeImpl = new Function('value', 'dataView',
-      output.encodeCode.replace(/#value#/g, 'value'));
+      output.encodeCode.replace(/#value#/g, 'value')).bind(namespace);
     // Decode code should define output target, so define them like this.
     output.decodeImpl = new Function('dataView',
       'var value;\n' +
       output.decodeCode.replace(/#value#/g, 'value') +
-      'return value;\n');
+      'return value;\n').bind(namespace);
     output.encode = (value) => {
       // Calculate size and create ArrayBuffer, then we're good
       let buffer = new ArrayBuffer(output.size(value));

@@ -65,7 +65,7 @@ export default class DataBuffer {
     return result;
   `);
   const setter = new Function('value', 'littleEndian', `
-    this.dataView.${setterName}(value, this.position, littleEndian);
+    this.dataView.${setterName}(this.position, value, littleEndian);
     this.position += ${bytes};
   `);
   DataBuffer.prototype[getterName] = getter;

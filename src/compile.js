@@ -149,7 +149,7 @@ function compileTuple(state, ast, generics) {
 function compileArray(state, ast, generics) {
   // Just a downgraded version of Array<T>.
   let type = resolveType(state, ast.type, generics);
-  let codeGen = new CodeGenerator();
+  let codeGen = new CodeGenerator(state);
   let u8, nullFieldName;
   let nullable = ast.type.nullable;
   if (nullable) {
@@ -185,7 +185,7 @@ function compileArray(state, ast, generics) {
 }
 
 function compileStruct(state, ast, generics) {
-  let codeGen = new CodeGenerator();
+  let codeGen = new CodeGenerator(state);
   let nullableCount = 0;
   let nullFieldName = 'nullCheck' + (Math.random() * 100000 | 0);
   function writeNullable(key, value) {
@@ -288,7 +288,7 @@ function compileStruct(state, ast, generics) {
 function compileEnum(state, ast, generics, namespace) {
   // Create a code generator, then loop for every entry in the entries list,
   // compile them into switch loop.
-  let codeGen = new CodeGenerator();
+  let codeGen = new CodeGenerator(state);
   let typeRef = JSON.stringify(ast.typeTarget);
   if (ast.subType === 'array') typeRef = '0';
   // We have to build encode / decode routine separately - they can't be shared.
