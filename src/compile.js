@@ -178,6 +178,8 @@ function compileArray(state, ast, generics) {
   }
   codeGen.pushType('#value#[i]', type);
   if (nullable) {
+    codeGen.push('} else {');
+    codeGen.push('#value#[i] = null;');
     codeGen.push('}');
   }
   codeGen.push('}');
@@ -233,6 +235,8 @@ function compileStruct(state, ast, generics) {
         let shiftPos = 1 << (nullableCount % 8);
         codeGen.push(`if ((${flagName} & ${shiftPos}) !== 0) {`);
         codeGen.pushType(`#value#[${key}]`, type);
+        codeGen.push('} else {');
+        codeGen.push(`#value#[${key}] = null;`);
         codeGen.push('}');
         nullableCount++;
       } else {

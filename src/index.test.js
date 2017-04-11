@@ -17,8 +17,7 @@ describe('compileFromCode', () => {
     // the numbers into bytes
     expect(arrayBufferToHex(buffer)).toBe('4048f5c3c0a8f5c3');
     expect(Point.decode(buffer)).toEqual(
-      Array.prototype.slice.call(new Float32Array([3.14, -5.28]))
-    );
+      Array.prototype.slice.call(new Float32Array([3.14, -5.28])));
   });
   it('should encode utf-8 stream correctly', () => {
     let { Data } = compileFromCode('struct Data { str: String<"utf-8"> }');
@@ -29,9 +28,16 @@ describe('compileFromCode', () => {
     expect(Data.decode(buffer)).toEqual({ str: '밯망hee' });
   });
   it('should encode object struct with nullable correctly', () => {
-    let { Point } = compileFromCode('struct Point { x: i32, y: i32 }');
-    let buffer = Point.encode({ x: 3, y: 19 });
-    expect(arrayBufferToHex(buffer)).toBe('0000000300000013');
-    expect(Point.decode(buffer)).toEqual({ x: 3, y: 19 });
+    let { Data } = compileFromCode(`struct Data {
+      a: ?u8,
+      b: ?u8,
+      c: u8,
+      d: ?u8,
+      e: ?u16,
+    }`);
+    let buffer = Data.encode({ a: 8, b: null, c: 15, d: 53, e: null });
+    expect(arrayBufferToHex(buffer)).toBe('05080f35');
+    expect(Data.decode(buffer)).toEqual(
+      { a: 8, b: null, c: 15, d: 53, e: null });
   });
 });

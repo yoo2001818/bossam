@@ -14,7 +14,7 @@ export default function createStringEncoder(charset = 'utf-8') {
       return encoder.encode(value).length + 4;
     },
     encodeImpl: (value, dataView) => {
-      let buffer = decoder.encode(value);
+      let buffer = encoder.encode(value);
       dataView.setUint32(buffer.length);
       dataView.setUint8Array(buffer);
     },
