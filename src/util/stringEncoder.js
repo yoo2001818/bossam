@@ -1,6 +1,9 @@
 import { TextEncoder, TextDecoder } from 'text-encoding';
 
 export default function createStringEncoder(charset = 'utf-8') {
+  if (charset === 'utf-16') return createUTF16StringEncoder();
+  if (charset === 'utf-16be') return createUTF16StringEncoder();
+  if (charset === 'utf-16le') return createUTF16StringEncoder(true);
   // TODO Because TextEncoder doesn't provide a method to retrieve the size of
   // the string, we should cache the results.
   let encoder = new TextEncoder(charset);
@@ -25,9 +28,9 @@ export default function createStringEncoder(charset = 'utf-8') {
   };
 }
 
-export function createUTF16StringEncoder(name, littleEndian) {
+export function createUTF16StringEncoder(littleEndian) {
   return {
-    name,
+    name: 'String',
     locked: true,
     // So deterministic
     size: (value) => value.length * 2 + 4,

@@ -1,4 +1,10 @@
-import DataBuffer from '../dataBuffer';
+// Change to node.js variant if Buffer exists
+let DataBuffer;
+if (typeof Buffer !== 'undefined') {
+  DataBuffer = require('../dataBuffer.node').default;
+} else {
+  DataBuffer = require('../dataBuffer').default;
+}
 
 // Generates the code using new Function()
 export default class CodeGenerator {
@@ -79,13 +85,12 @@ export default class CodeGenerator {
       'return value;\n').bind(namespace);
     output.encode = (value) => {
       // Calculate size and create ArrayBuffer, then we're good
-      let buffer = new ArrayBuffer(output.size(value));
-      let dataBuffer = new DataBuffer(new DataView(buffer));
+      let dataBuffer = new DataBuffer(output.size(value));
       output.encodeImpl(value, dataBuffer);
-      return buffer;
+      return dataBuffer.getBuffer();
     };
     output.decode = (buffer) => {
-      return output.decodeImpl(new DataBuffer(new DataView(buffer)));
+      return output.decodeImpl(new DataBuffer(buffer));
     };
     return output;
   }

@@ -1,30 +1,25 @@
-// AS3 ByteArray style Buffer object. It shims the DataView object
-// to make it more convinent to use - it automatically records position data.
-// To avoid conflict with Node.js Buffer object, it is 'DataBuffer' instead of
-// just 'Buffer'.
+// A Node.js variant for DataBuffer, because ArrayBuffer is quite slow
+// in Node.js.
 export default class DataBuffer {
   constructor(arg) {
     if (typeof arg === 'number') {
-      this.buffer = new Uint8Array(arg);
+      this.buffer = Buffer.allocUnsafe(arg);
     } else {
-      this.buffer = arg;
+      this.buffer = Buffer.from(arg);
     }
-    // Create DataView from Uint8Array
-    this.dataView = new DataView(this.buffer.buffer,
-      this.buffer.byteOffset, this.buffer.byteLength);
     this.position = 0;
   }
   getBuffer() {
     return this.buffer;
   }
-  setUint8Array(buffer) {
-    const size = buffer.length;
-    const output = new Uint8Array(this.dataView.buffer, this.position, size);
+  setUint8Array(array) {
+    const source = Buffer.from(array);
+    const size = source.length;
+    source.copy(this.buffer, this.position);
     this.position += size;
-    output.set(buffer);
   }
   getUint8Array(size, buffer) {
-    const output = new Uint8Array(this.dataView.buffer, this.position, size);
+    const output = this.buffer.slice(this.position, this.position + size);
     this.position += size;
     if (buffer != null) {
       if (buffer.length > size) {
@@ -37,12 +32,14 @@ export default class DataBuffer {
   }
   setUint16Array(buffer) {
     const size = buffer.length;
-    const output = new Uint16Array(this.dataView.buffer, this.position, size);
+    const output = new Uint16Array(this.buffer.buffer,
+      this.position + this.buffer.byteOffset, size);
     this.position += size;
     output.set(buffer);
   }
   getUint16Array(size, buffer) {
-    const output = new Uint16Array(this.dataView.buffer, this.position, size);
+    const output = new Uint16Array(this.buffer.buffer,
+      this.position + this.buffer.byteOffset, size);
     this.position += size;
     if (buffer != null) {
       if (buffer.length > size) {
@@ -58,24 +55,27 @@ export default class DataBuffer {
 // Implement each accessor function. Since copy & paste is not preferred,
 // I decided to alter prototypes to create functions dynamically.
 [
-  ['Float32', 4],
-  ['Float64', 8],
+  ['Float32', 4, 'Float'],
+  ['Float64', 8, 'Double'],
   ['Int8', 1],
   ['Int16', 2],
   ['Int32', 4],
-  ['Uint8', 1],
-  ['Uint16', 2],
-  ['Uint32', 4],
-].forEach(([type, bytes]) => {
+  ['Uint8', 1, 'UInt8'],
+  ['Uint16', 2, 'UInt16'],
+  ['Uint32', 4, 'UInt32'],
+].forEach(([type, bytes, nodeType]) => {
   const getterName = 'get' + type;
   const setterName = 'set' + type;
+  const name = nodeType || type;
+  const be = bytes === 1 ? '' : 'BE';
+  const le = bytes === 1 ? '' : 'LE';
   const getter = new Function(`
-    var result = this.dataView.${getterName}(this.position);
+    var result = this.buffer.read${name}${be}(this.position);
     this.position += ${bytes};
     return result;
   `);
   const setter = new Function('value', `
-    this.dataView.${setterName}(this.position, value);
+    this.buffer.write${name}${be}(value, this.position);
     this.position += ${bytes};
   `);
   DataBuffer.prototype[getterName] = getter;
@@ -83,12 +83,12 @@ export default class DataBuffer {
   const getterLEName = 'get' + type + 'LE';
   const setterLEName = 'set' + type + 'LE';
   const getterLE = new Function(`
-    var result = this.dataView.${getterName}(this.position, true);
+    var result = this.buffer.read${name}${le}(this.position);
     this.position += ${bytes};
     return result;
   `);
   const setterLE = new Function('value', `
-    this.dataView.${setterName}(this.position, value, true);
+    this.buffer.write${name}${le}(value, this.position);
     this.position += ${bytes};
   `);
   DataBuffer.prototype[getterLEName] = getterLE;

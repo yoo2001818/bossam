@@ -1,6 +1,5 @@
 import CodeGenerator from './util/codeGenerator';
-import createStringEncoder, { createUTF16StringEncoder }
-  from './util/stringEncoder';
+import createStringEncoder from './util/stringEncoder';
 
 const builtInNamespace = {
   i8: {
@@ -120,9 +119,6 @@ const builtInNamespace = {
     return codeGen.compile();
   },
   String: createStringEncoder('utf-8'),
-  'String<utf-16>': createUTF16StringEncoder('String<utf-16>', false),
-  'String<utf-16be>': createUTF16StringEncoder('String<utf-16be>', false),
-  'String<utf-16le>': createUTF16StringEncoder('String<utf-16le>', true),
   'String<_>': (state, generics) => {
     return createStringEncoder(generics[0].name);
   },
