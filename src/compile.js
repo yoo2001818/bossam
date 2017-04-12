@@ -156,7 +156,7 @@ function compileArray(state, ast, generics) {
     // If the type is nullable, we have to use separate nullable fields to
     // spare some bits
     u8 = resolveType(state, { name: 'u8' });
-    nullFieldName = 'nullCheck' + (Math.random() * 100000 | 0);
+    nullFieldName = 'nullCheck' + (state.namespace._refs++);
     codeGen.push(`var ${nullFieldName} = 0;`);
   }
   codeGen.pushDecode(`#value# = new Array(${ast.size});`);
@@ -189,16 +189,16 @@ function compileArray(state, ast, generics) {
 function compileStruct(state, ast, generics) {
   let codeGen = new CodeGenerator(state);
   let nullableCount = 0;
-  let nullFieldName = 'nullCheck' + (Math.random() * 100000 | 0);
+  let nullFieldName = 'nullCheck' + (state.namespace._refs++);
   function writeNullable(key, value) {
     if (value.nullable) {
       let bytePos = (nullableCount / 8) | 0;
-      let fieldName = nullFieldName + bytePos;
+      let fieldName = nullFieldName + '_' + bytePos;
       if (nullableCount % 8 === 0) {
         let u8 = resolveType(state, { name: 'u8' });
         codeGen.pushTypeDecode(fieldName, u8, true);
         if (bytePos > 0) {
-          codeGen.pushTypeEncode(nullFieldName + (bytePos - 1), u8);
+          codeGen.pushTypeEncode(nullFieldName + '_' + (bytePos - 1), u8);
         }
         codeGen.pushEncode(`var ${fieldName} = 0;`);
       }
@@ -212,7 +212,7 @@ function compileStruct(state, ast, generics) {
     if (nullableCount > 0) {
       let bytePos = (nullableCount / 8) | 0;
       let u8 = resolveType(state, { name: 'u8' });
-      codeGen.pushTypeEncode(nullFieldName + bytePos, u8);
+      codeGen.pushTypeEncode(nullFieldName + '_' + bytePos, u8);
     }
     nullableCount = 0;
   }
@@ -231,7 +231,7 @@ function compileStruct(state, ast, generics) {
       // If the type is nullable, read a byte to check if the data exists.
       if (value.nullable) {
         let bytePos = (nullableCount / 8) | 0;
-        let flagName = nullFieldName + bytePos;
+        let flagName = nullFieldName + '_' + bytePos;
         let shiftPos = 1 << (nullableCount % 8);
         codeGen.push(`if ((${flagName} & ${shiftPos}) !== 0) {`);
         codeGen.pushType(`#value#[${key}]`, type);
@@ -299,8 +299,8 @@ function compileEnum(state, ast, generics, namespace) {
   // TODO Support nulls? Although it's not necessary at all, but it'd be good
   // if we can support it.
   // Read the type object.
-  let varName = 'enumType' + (Math.random() * 100000 | 0);
-  let varOut = 'enumData' + (Math.random() * 100000 | 0);
+  let varName = 'enumType' + (state.namespace._refs++);
+  let varOut = 'enumData' + (state.namespace._refs++);
   let typeType = resolveType(state, ast.typeType, generics);
   let localState = { root: state, namespace, ast: ast.namespace };
   codeGen.push(`var ${varOut};`);

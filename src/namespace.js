@@ -84,11 +84,10 @@ const builtInNamespace = {
       // If the type is nullable, we have to use separate nullable fields to
       // spare some bits
       u8 = state.resolveType({ name: 'u8' });
-      nullFieldName = 'nullCheck' + (Math.random() * 100000 | 0);
+      nullFieldName = 'nullCheck' + (state.namespace._refs++);
       codeGen.push(`var ${nullFieldName} = 0;`);
     }
-    // TODO Even if it's randomized, maybe it can cause a problem? Not sure yet.
-    let varName = 'arraySize' + (Math.random() * 100000 | 0);
+    let varName = 'arraySize' + (state.namespace._refs++);
     codeGen.pushTypeDecode(varName, numType, true);
     codeGen.pushEncode(`var ${varName} = #value#.length;`);
     codeGen.pushTypeEncode(varName, numType);
@@ -122,6 +121,7 @@ const builtInNamespace = {
   'String<_>': (state, generics) => {
     return createStringEncoder(generics[0].name);
   },
+  _refs: 0,
 };
 
 // Creates namespace. So simple :P

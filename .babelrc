@@ -1,7 +1,8 @@
 {
   "presets": [
     ["env", {
-      "exclude": ["transform-regenerator"]
+      "exclude": ["transform-regenerator"],
+      "loose": true
     }],
     "react"
   ]
