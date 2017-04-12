@@ -12,8 +12,19 @@ export default class DataBuffer {
   getBuffer() {
     return this.buffer;
   }
+  getString(size, charset) {
+    const output = this.buffer.toString(charset,
+      this.position, this.position + size);
+    this.position += size;
+    return output;
+  }
   setUint8Array(array) {
-    const source = Buffer.from(array);
+    let source;
+    if (array instanceof Buffer) {
+      source = array;
+    } else {
+      source = Buffer.from(array);
+    }
     const size = source.length;
     source.copy(this.buffer, this.position);
     this.position += size;
