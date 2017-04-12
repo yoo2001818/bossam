@@ -3,33 +3,33 @@ import tokenize from './tokenize';
 
 describe('tokenize', () => {
   it('should support line comments', () => {
-    expect([...tokenize(`
+    expect(Array.from(tokenize(`
       // What do you expect?
       // Hello!
-    `)]).toEqual([]);
+    `))).toEqual([]);
   });
   it('should support block comments', () => {
-    expect([...tokenize(`
+    expect(Array.from(tokenize(`
       /* This is a block comment */
       /* This
          too!
       */
-    `)]).toEqual([]);
+    `))).toEqual([]);
   });
   it('should support numbers', () => {
-    expect([...tokenize('5353')]).toEqual([{
+    expect(Array.from(tokenize('5353'))).toEqual([{
       type: 'number', value: 5353,
     }]);
-    expect([...tokenize('0xdeadcafe')]).toEqual([{
+    expect(Array.from(tokenize('0xdeadcafe'))).toEqual([{
       type: 'number', value: 0xdeadcafe,
     }]);
   });
   it('should support strings', () => {
-    expect([...tokenize('"This says \\"Hello\\" to you"')]).toEqual([{
+    expect(Array.from(tokenize('"This says \\"Hello\\" to you"'))).toEqual([{
       type: 'string', value: 'This says "Hello" to you',
     }]);
   });
   it('should parse test code', () => {
-    [...tokenize(fs.readFileSync('./test.bsm', 'utf-8'))];
+    Array.from(tokenize(fs.readFileSync('./test.bsm', 'utf-8')));
   });
 });
