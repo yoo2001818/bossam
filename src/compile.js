@@ -190,6 +190,19 @@ function compileStruct(state, ast, generics) {
   let codeGen = new CodeGenerator(state);
   let nullableCount = 0;
   let nullFieldName = 'nullCheck' + (state.namespace._refs++);
+  let refFieldName = 'ref' + (state.namespace._refs++);
+  let refId = 0;
+  let refs = {};
+  function writeRefEncode(key) {
+    let name = refFieldName + '_' + (refId++);
+    refs[key] = name;
+    codeGen.pushEncode(`var ${name} = #value#[${key}];`);
+    codeGen.pushDecode(`var ${name};`);
+  }
+  function writeRefDecode(key) {
+    let name = refs[key];
+    codeGen.pushDecode(`#value#[${key}] = ${name};`);
+  }
   function writeNullable(key, value) {
     if (value.nullable) {
       let bytePos = (nullableCount / 8) | 0;
@@ -204,7 +217,7 @@ function compileStruct(state, ast, generics) {
       }
       let shiftPos = 1 << (nullableCount % 8);
       codeGen.pushEncode(
-        `${fieldName} |= #value#[${key}] != null ? ${shiftPos} : 0;`);
+        `${fieldName} |= ${refs[key]} != null ? ${shiftPos} : 0;`);
       nullableCount++;
     }
   }
@@ -218,7 +231,7 @@ function compileStruct(state, ast, generics) {
   }
   function writeEntry(key, value) {
     if (value.jsConst) {
-      codeGen.pushDecode(`#value#[${key}] = ${JSON.stringify(value.value)};`);
+      codeGen.pushDecode(`${refs[key]} = ${JSON.stringify(value.value)};`);
     } else if (value.const) {
       let type = resolveType(state, value.type, generics);
       let valueStr = JSON.stringify(value.value);
@@ -234,19 +247,22 @@ function compileStruct(state, ast, generics) {
         let flagName = nullFieldName + '_' + bytePos;
         let shiftPos = 1 << (nullableCount % 8);
         codeGen.push(`if ((${flagName} & ${shiftPos}) !== 0) {`);
-        codeGen.pushType(`#value#[${key}]`, type);
+        codeGen.pushType(`${refs[key]}`, type);
         codeGen.push('} else {');
-        codeGen.push(`#value#[${key}] = null;`);
+        codeGen.push(`${refs[key]} = null;`);
         codeGen.push('}');
         nullableCount++;
       } else {
-        codeGen.pushType(`#value#[${key}]`, type);
+        codeGen.pushType(`${refs[key]}`, type);
       }
     }
   }
   switch (ast.subType) {
     case 'object': {
       codeGen.pushDecode('#value# = {};');
+      ast.keys.forEach(key => {
+        writeRefEncode(`"${key}"`);
+      });
       ast.keys.forEach(key => {
         if (typeof key === 'string') {
           writeNullable(`"${key}"`, ast.values[key]);
@@ -262,11 +278,18 @@ function compileStruct(state, ast, generics) {
           writeEntry(`"${key}"`, ast.values[key]);
         }
       });
+      ast.keys.forEach(key => {
+        writeRefDecode(`"${key}"`);
+      });
       break;
     }
     case 'array': {
       codeGen.pushDecode('#value# = [];');
       let pos = 0;
+      ast.keys.forEach(() => {
+        writeRefEncode(pos++);
+      });
+      pos = 0;
       ast.keys.forEach(key => {
         writeNullable(pos++, key);
       });
@@ -278,6 +301,10 @@ function compileStruct(state, ast, generics) {
         } else {
           writeEntry(pos++, key);
         }
+      });
+      pos = 0;
+      ast.keys.forEach(() => {
+        writeRefDecode(pos++);
       });
       break;
     }
