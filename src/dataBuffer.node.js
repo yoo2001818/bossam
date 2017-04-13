@@ -17,6 +17,10 @@ export default class DataBuffer {
   getBuffer() {
     return this.buffer;
   }
+  setString(size, value, charset) {
+    this.buffer.write(value, this.position, this.position + size, charset);
+    this.position += size;
+  }
   getString(size, charset) {
     const output = this.buffer.toString(charset,
       this.position, this.position + size);

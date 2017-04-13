@@ -1,5 +1,10 @@
-import CodeGenerator from './util/codeGenerator';
-import createStringEncoder from './util/stringEncoder';
+import CodeGenerator from './codeGenerator';
+let createStringEncoder;
+if (typeof Buffer !== 'undefined') {
+  createStringEncoder = require('./stringEncoder.node').default;
+} else {
+  createStringEncoder = require('./stringEncoder').default;
+}
 
 const builtInNamespace = {
   i8: {

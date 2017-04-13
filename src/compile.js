@@ -1,6 +1,6 @@
 import createNamespace from './namespace';
 import getIdentifier from './util/getIdentifier';
-import CodeGenerator from './util/codeGenerator';
+import CodeGenerator from './codeGenerator';
 
 export default function compile(ast, namespace = createNamespace()) {
   // Create compiler state.
