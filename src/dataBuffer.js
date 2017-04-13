@@ -3,19 +3,18 @@
 // To avoid conflict with Node.js Buffer object, it is 'DataBuffer' instead of
 // just 'Buffer'.
 export default class DataBuffer {
-  constructor() {
-    this.position = 0;
-  }
   newBuffer(size) {
     this.buffer = new Uint8Array(size);
     // Create DataView from Uint8Array
     this.dataView = new DataView(this.buffer.buffer);
+    this.position = 0;
   }
   setBuffer(buffer) {
     this.buffer = buffer;
     // Create DataView from Uint8Array
     this.dataView = new DataView(this.buffer.buffer,
       this.buffer.byteOffset, this.buffer.byteLength);
+    this.position = 0;
   }
   getBuffer() {
     return this.buffer;

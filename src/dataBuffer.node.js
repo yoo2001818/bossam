@@ -1,11 +1,9 @@
 // A Node.js variant for DataBuffer, because ArrayBuffer is quite slow
 // in Node.js.
 export default class DataBuffer {
-  constructor() {
-    this.position = 0;
-  }
   newBuffer(size) {
     this.buffer = Buffer.allocUnsafe(size);
+    this.position = 0;
   }
   setBuffer(buffer) {
     if (Buffer.isBuffer(buffer)) {
@@ -14,6 +12,7 @@ export default class DataBuffer {
       this.buffer = Buffer.from(buffer.buffer,
         buffer.byteOffset, buffer.length);
     }
+    this.position = 0;
   }
   getBuffer() {
     return this.buffer;

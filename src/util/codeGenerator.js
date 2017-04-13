@@ -83,15 +83,14 @@ export default class CodeGenerator {
       'var value;\n' +
       output.decodeCode.replace(/#value#/g, 'value') +
       'return value;\n').bind(namespace);
+    const dataBuffer = new DataBuffer();
     output.encode = (value) => {
       // Calculate size and create ArrayBuffer, then we're good
-      let dataBuffer = new DataBuffer();
       dataBuffer.newBuffer(output.size(value));
       output.encodeImpl(value, dataBuffer);
       return dataBuffer.getBuffer();
     };
     output.decode = (buffer) => {
-      let dataBuffer = new DataBuffer();
       dataBuffer.setBuffer(buffer);
       return output.decodeImpl(dataBuffer);
     };
