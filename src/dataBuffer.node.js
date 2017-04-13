@@ -1,13 +1,19 @@
 // A Node.js variant for DataBuffer, because ArrayBuffer is quite slow
 // in Node.js.
 export default class DataBuffer {
-  constructor(arg) {
-    if (typeof arg === 'number') {
-      this.buffer = Buffer.allocUnsafe(arg);
-    } else {
-      this.buffer = Buffer.from(arg);
-    }
+  constructor() {
     this.position = 0;
+  }
+  newBuffer(size) {
+    this.buffer = Buffer.allocUnsafe(size);
+  }
+  setBuffer(buffer) {
+    if (Buffer.isBuffer(buffer)) {
+      this.buffer = buffer;
+    } else {
+      this.buffer = Buffer.from(buffer.buffer,
+        buffer.byteOffset, buffer.length);
+    }
   }
   getBuffer() {
     return this.buffer;
@@ -81,12 +87,12 @@ export default class DataBuffer {
   const be = bytes === 1 ? '' : 'BE';
   const le = bytes === 1 ? '' : 'LE';
   const getter = new Function(`
-    var result = this.buffer.read${name}${be}(this.position);
+    var result = this.buffer.read${name}${be}(this.position, true);
     this.position += ${bytes};
     return result;
   `);
   const setter = new Function('value', `
-    this.buffer.write${name}${be}(value, this.position);
+    this.buffer.write${name}${be}(value, this.position, true);
     this.position += ${bytes};
   `);
   DataBuffer.prototype[getterName] = getter;
@@ -94,12 +100,12 @@ export default class DataBuffer {
   const getterLEName = 'get' + type + 'LE';
   const setterLEName = 'set' + type + 'LE';
   const getterLE = new Function(`
-    var result = this.buffer.read${name}${le}(this.position);
+    var result = this.buffer.read${name}${le}(this.position, true);
     this.position += ${bytes};
     return result;
   `);
   const setterLE = new Function('value', `
-    this.buffer.write${name}${le}(value, this.position);
+    this.buffer.write${name}${le}(value, this.position, true);
     this.position += ${bytes};
   `);
   DataBuffer.prototype[getterLEName] = getterLE;
