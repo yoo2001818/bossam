@@ -17,7 +17,7 @@ export function getUintVar(dataBuffer) {
   let sizeByte = firstByte;
   let size = 1;
   while (size <= 5) {
-    if ((sizeByte & 0x70) === 0) break;
+    if ((sizeByte & 0x80) === 0) break;
     sizeByte = sizeByte << 1;
     size++;
   }
@@ -25,7 +25,10 @@ export function getUintVar(dataBuffer) {
   let output = 0;
   let remainingSize = size - 1;
   firstByte = firstByte & (0xFF >> size);
-  output = firstByte << ((remainingSize - 1) << 3);
+  // Handle 32bit specially :/
+  if (remainingSize < 4) {
+    output = firstByte << (remainingSize << 3);
+  }
   while (remainingSize >= 4) {
     remainingSize -= 4;
     output |= dataBuffer.getUint32() << (remainingSize << 3);
@@ -45,9 +48,14 @@ export function setUintVar(value, dataBuffer) {
   // Determine the size of value first.
   let size = getSize(value);
   // Write the first byte - Include the size information too.
-  let sizeByte = (0xFE00 >> size) | 0xFF;
+  let sizeByte = (0xFE00 >> size) & 0xFF;
   let remainingSize = size - 1;
-  dataBuffer.setUint8(value >>> (remainingSize << 3)) | sizeByte;
+  // Handle 32bit specially :/
+  if (remainingSize < 4) {
+    dataBuffer.setUint8((value >>> (remainingSize << 3)) | sizeByte);
+  } else {
+    dataBuffer.setUint8(sizeByte);
+  }
   while (remainingSize >= 4) {
     remainingSize -= 4;
     dataBuffer.setUint32(value >>> (remainingSize << 3));
