@@ -39,3 +39,5 @@ jspm_packages
 yarn.lock
 
 lib/
+
+test.js
