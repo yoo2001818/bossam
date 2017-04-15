@@ -1,10 +1,10 @@
-import { getSize, getUintVar, setUintVar } from './uvar';
+import { getUintSize, getUintVar, setUintVar } from './uvar';
 import DataBuffer from '../dataBuffer.node';
 import byteArrayToHex, { byteArrayFromHex } from './byteArrayToHex';
 
 function encode(value) {
   let buffer = new DataBuffer();
-  buffer.newBuffer(getSize(value));
+  buffer.newBuffer(getUintSize(value));
   setUintVar(value, buffer);
   return byteArrayToHex(buffer.getBuffer());
 }
@@ -16,7 +16,7 @@ function decode(hex) {
 }
 
 describe('uvar', () => {
-  it('should process 7bit numbers', () => {
+  it('should process 6bit numbers', () => {
     expect(encode(127)).toBe('7f');
     expect(decode('7f')).toBe(127);
     expect(encode(53)).toBe('35');
@@ -46,7 +46,7 @@ describe('uvar', () => {
     expect(encode(0x7fffffff)).toBe('f07fffffff');
     expect(decode('f07fffffff')).toBe(0x7fffffff);
     expect(encode(0xffffffff)).toBe('f0ffffffff');
-    expect(decode('f0ffffffff')).toBe(0xffffffff);
+    expect(decode('f0ffffffff')).toBe(-1);
     expect(decode(encode(102476891))).toBe(102476891);
   });
 });

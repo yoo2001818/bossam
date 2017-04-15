@@ -1,6 +1,7 @@
-export function getSize(value) {
+export function getUintSize(value) {
   // If size is n, the total bit space is 7 * n space.
   // Don't support >32bit integers for now.
+  if (value < 0) return 5;
   if (value < (1 << 7)) return 1;
   if (value < (1 << 14)) return 2;
   if (value < (1 << 21)) return 3;
@@ -46,7 +47,7 @@ export function getUintVar(dataBuffer) {
 
 export function setUintVar(value, dataBuffer) {
   // Determine the size of value first.
-  let size = getSize(value);
+  let size = getUintSize(value);
   // Write the first byte - Include the size information too.
   let sizeByte = (0xFE00 >> size) & 0xFF;
   let remainingSize = size - 1;
