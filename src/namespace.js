@@ -1,4 +1,6 @@
 import CodeGenerator from './codeGenerator';
+import * as ivar from './util/ivar';
+import * as uvar from './util/uvar';
 let createStringEncoder;
 if (typeof Buffer !== 'undefined') {
   createStringEncoder = require('./stringEncoder.node').default;
@@ -61,6 +63,20 @@ const builtInNamespace = {
     encodeCode: 'dataView.setUint32(#value#);\n',
     decodeCode: '#value# = dataView.getUint32();\n',
   },
+  ivar: {
+    name: 'ivar',
+    locked: true,
+    size: (value) => ivar.getIntSize(value),
+    encodeImpl: (value, dataView) => ivar.setIntVar(value, dataView),
+    decodeImpl: (dataView) => ivar.getIntVar(dataView),
+  },
+  uvar: {
+    name: 'uvar',
+    locked: true,
+    size: (value) => uvar.getUintSize(value),
+    encodeImpl: (value, dataView) => uvar.setUintVar(value, dataView),
+    decodeImpl: (dataView) => uvar.getUintVar(dataView),
+  },
   f32: {
     name: 'f32',
     size: () => 4,
@@ -81,7 +97,7 @@ const builtInNamespace = {
   },
   'Array<_>': (state, generics) => {
     let type = state.resolveType(generics[0]);
-    let numType = state.resolveType({ name: 'u32' });
+    let numType = state.resolveType({ name: 'uvar' });
     let codeGen = new CodeGenerator(state);
     let u8, nullFieldName;
     let nullable = generics[0].nullable;
