@@ -75,6 +75,7 @@ describe('compileFromCode', () => {
         price: ivar,
         user: {
           id: u32,
+          enabled: bool,
           count: u8,
         },
       };
@@ -83,11 +84,12 @@ describe('compileFromCode', () => {
       price: 1500,
       user: {
         id: 19999,
+        enabled: true,
         count: 13,
       },
     };
     let buffer = Transaction.encode(data);
-    expect(byteArrayToHex(buffer)).toBe('8bb800004e1f0d');
+    expect(byteArrayToHex(buffer)).toBe('8bb800004e1f010d');
     expect(Transaction.decode(buffer)).toEqual(data);
   });
   it('should encode empty object', () => {

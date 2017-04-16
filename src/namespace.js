@@ -1,4 +1,3 @@
-import CodeGenerator from './codeGenerator';
 import * as ivar from './util/ivar';
 import * as uvar from './util/uvar';
 let createStringEncoder;
@@ -7,6 +6,7 @@ if (typeof Buffer !== 'undefined') {
 } else {
   createStringEncoder = require('./stringEncoder').default;
 }
+import createArrayEncoder from './arrayEncoder';
 
 const builtInNamespace = {
   i8: {
@@ -95,49 +95,17 @@ const builtInNamespace = {
     encodeCode: 'dataView.setFloat64(#value#);\n',
     decodeCode: '#value# = dataView.getFloat64();\n',
   },
-  'Array<_>': (state, generics) => {
-    let type = state.resolveType(generics[0]);
-    let numType = state.resolveType({ name: 'uvar' });
-    let codeGen = new CodeGenerator(state);
-    let u8, nullFieldName;
-    let nullable = generics[0].nullable;
-    if (nullable) {
-      // If the type is nullable, we have to use separate nullable fields to
-      // spare some bits
-      u8 = state.resolveType({ name: 'u8' });
-      nullFieldName = 'nullCheck' + (state.namespace._refs++);
-      codeGen.push(`var ${nullFieldName} = 0;`);
-    }
-    let varName = 'arraySize' + (state.namespace._refs++);
-    codeGen.pushTypeDecode(varName, numType, true);
-    codeGen.pushEncode(`var ${varName} = #value#.length;`);
-    codeGen.pushTypeEncode(varName, numType);
-    codeGen.pushDecode(`#value# = new Array(${varName});`);
-    codeGen.push(`for (var i = 0; i < ${varName}; ++i) {`);
-    if (nullable) {
-      // To match with decoding order, encoder must look ahead of the array
-      // and save flags beforehand.
-      codeGen.push('if (i % 8 === 0) {');
-      codeGen.pushEncode(`${nullFieldName} = 0;`);
-      codeGen.pushEncode(`var maxIdx = Math.min(8, ${varName} - i);`);
-      codeGen.pushEncode('for (var j = 0; j < maxIdx; ++j) {');
-      // Check flag / insert flag.
-      codeGen.pushEncode(
-        `${nullFieldName} |= #value#[i + j] == null ? 0 : (1 << j);`);
-      codeGen.pushEncode('}');
-      codeGen.pushType(nullFieldName, u8);
-      codeGen.push('}');
-      codeGen.push(`if (${nullFieldName} & (1 << (i % 8)) !== 0) {`);
-    }
-    codeGen.pushType('#value#[i]', type);
-    if (nullable) {
-      codeGen.pushDecode('} else {');
-      codeGen.pushDecode('#value#[i] = null;');
-      codeGen.push('}');
-    }
-    codeGen.push('}');
-    return codeGen.compile();
+  'bool': {
+    name: 'bool',
+    size: () => 1,
+    encodeImpl: (value, dataView) => dataView.setUint8(value ? 1 : 0),
+    decodeImpl: (dataView) => !!dataView.getUint8(),
+    sizeCode: 'size += 1;\n',
+    encodeCode: 'dataView.setUint8(#value# ? 1 : 0);\n',
+    decodeCode: '#value# = !!dataView.getUint8();\n',
   },
+  'Array<_>': createArrayEncoder,
+  'Vec<_>': createArrayEncoder,
   String: createStringEncoder('utf-8'),
   'String<_>': (state, generics) => {
     return createStringEncoder(generics[0].name);
