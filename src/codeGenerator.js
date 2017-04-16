@@ -85,22 +85,12 @@ export default class CodeGenerator {
       output.decodeCode.replace(/#value#/g, 'value') +
       'return value;\n').bind(namespace);
     const dataBuffer = new DataBuffer();
-    // If the max size is finite, we can optimize by creating largest buffer
-    // then slicing it
-    if (maxSize !== Infinity) {
-      output.encode = (value) => {
-        dataBuffer.newBuffer(maxSize);
-        output.encodeImpl(value, dataBuffer);
-        return dataBuffer.getBufferSliced();
-      };
-    } else {
-      output.encode = (value) => {
-        // Calculate size and create ArrayBuffer, then we're good
-        dataBuffer.newBuffer(output.size(value));
-        output.encodeImpl(value, dataBuffer);
-        return dataBuffer.getBuffer();
-      };
-    }
+    output.encode = (value) => {
+      // Calculate size and create ArrayBuffer, then we're good
+      dataBuffer.newBuffer(output.size(value));
+      output.encodeImpl(value, dataBuffer);
+      return dataBuffer.getBuffer();
+    };
     output.decode = (buffer) => {
       dataBuffer.setBuffer(buffer);
       return output.decodeImpl(dataBuffer);

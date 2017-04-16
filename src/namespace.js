@@ -117,6 +117,8 @@ const builtInNamespace = {
   },
   'Array<_>': createArrayEncoder,
   'Vec<_>': createArrayEncoder,
+  'Array<_,_>': createArrayEncoder,
+  'Vec<_,_>': createArrayEncoder,
   String: createStringEncoder('utf-8'),
   'String<_>': (state, generics) => {
     return createStringEncoder(generics[0].name);

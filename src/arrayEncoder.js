@@ -2,6 +2,10 @@ import CodeGenerator from './codeGenerator';
 
 export default function createArrayEncoder(state, generics) {
   let type = state.resolveType(generics[0]);
+  let maxLength = Infinity;
+  if (generics[1] != null && generics[1].const) {
+    maxLength = generics[1].name;
+  }
   let numType = state.resolveType({ name: 'uvar' });
   let codeGen = new CodeGenerator(state);
   let u8, nullFieldName;
@@ -41,5 +45,14 @@ export default function createArrayEncoder(state, generics) {
     codeGen.push('}');
   }
   codeGen.push('}');
-  return codeGen.compile(Infinity);
+  // Calculate max size if max length constraint is provided
+  let maxSize = Infinity;
+  if (maxLength !== Infinity) {
+    maxSize = numType.size(maxLength);
+    maxSize += maxLength * type.maxSize;
+    if (nullable) {
+      maxSize += Math.ceil(maxLength / 8);
+    }
+  }
+  return codeGen.compile(maxSize);
 }
