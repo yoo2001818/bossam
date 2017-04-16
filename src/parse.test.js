@@ -67,6 +67,16 @@ describe('parse', () => {
       }
     `));
   });
+  it('should parse inline structs', () => {
+    parse(tokenize(`
+      struct Test {
+        abc: {
+          x: i32,
+          y: i32,
+        },
+      }
+    `));
+  });
   it('should parse arrays', () => {
     parse(tokenize(`
       struct Test {

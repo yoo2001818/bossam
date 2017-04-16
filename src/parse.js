@@ -174,16 +174,7 @@ function defineEnum(state) {
   return data;
 }
 
-function defineStruct(state, allowEmpty = false, parentGenerics) {
-  let data, generics;
-  if (parentGenerics != null) {
-    data = getName(state, parentGenerics, true);
-    generics = parentGenerics;
-  } else {
-    data = getName(state, null, true);
-    generics = data.generics;
-  }
-  data.type = 'struct';
+function defineInlineStruct(state, data, allowEmpty = false, generics) {
   return match(state, {
     else: !allowEmpty ? null : (state, token) => {
       // Just push the token and return the data.
@@ -248,6 +239,19 @@ function defineStruct(state, allowEmpty = false, parentGenerics) {
   });
 }
 
+function defineStruct(state, allowEmpty = false, parentGenerics) {
+  let data, generics;
+  if (parentGenerics != null) {
+    data = getName(state, parentGenerics, true);
+    generics = parentGenerics;
+  } else {
+    data = getName(state, null, true);
+    generics = data.generics;
+  }
+  data.type = 'struct';
+  return defineInlineStruct(state, data, allowEmpty, generics);
+}
+
 function getType(state, generics) {
   // Read keyword or paren. If paren is specified, that means a tuple is
   // specified.
@@ -279,18 +283,15 @@ function getType(state, generics) {
       type.nullable = true;
       return type;
     },
-    parenOpen: (state) => {
-      // Process a tuple.
-      let result = [];
-      function next() {
-        // Receive a keyword...
-        result.push(getType(state, generics));
-        // Continue to next if comma is provided
-        pullIf(state, 'comma', next);
-      }
-      next();
-      pull(state, 'parenClose');
-      return { tuple: true, types: result };
+    curlyOpen: (state, token) => {
+      let data = { inline: true, type: 'struct' };
+      state.push(token);
+      return defineInlineStruct(state, data, false, generics);
+    },
+    parenOpen: (state, token) => {
+      let data = { inline: true, type: 'struct' };
+      state.push(token);
+      return defineInlineStruct(state, data, false, generics);
     },
     squareOpen: (state) => {
       let data = { array: true };

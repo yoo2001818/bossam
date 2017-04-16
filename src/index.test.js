@@ -57,4 +57,16 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('8501080f350506');
     expect(Data.decode(buffer)).toEqual(data);
   });
+  it('should encode inline array struct correctly', () => {
+    let { Mat2x2 } = compileFromCode('struct Mat2x2((f32, f32), (ivar, ivar))');
+    let buffer = Mat2x2.encode([[3.14, -5.28], [-9, 22]]);
+    // Since I have no idea how IEEE 754 is laid out, so I just used
+    // https://www.h-schmidt.net/FloatConverter/IEEE754.html to convert
+    // the numbers into bytes
+    expect(byteArrayToHex(buffer)).toBe('4048f5c3c0a8f5c3112c');
+    expect(Mat2x2.decode(buffer)).toEqual([
+      Array.prototype.slice.call(new Float32Array([3.14, -5.28])),
+      [-9, 22],
+    ]);
+  });
 });

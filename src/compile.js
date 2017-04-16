@@ -30,8 +30,8 @@ function resolveType(state, type, parentGenerics) {
   let resolvedType = type;
   if (type.generic === true) resolvedType = parentGenerics[type.name];
   // If the type is a tuple, Compile it right away.
-  if (resolvedType.tuple === true) {
-    return compileTuple(state, resolvedType, parentGenerics);
+  if (resolvedType.inline === true) {
+    return compileStruct(state, resolvedType, parentGenerics);
   }
   // Same for arrays.
   if (resolvedType.array === true) {
@@ -134,16 +134,6 @@ function compileBlock(state, astBlock, generics, namespace) {
     return compileEnum(state, astBlock, generics, namespace);
   }
   throw new Error('Unknown type ' + astBlock.type);
-}
-
-function compileTuple(state, ast, generics) {
-  // Just convert the AST into struct AST, then we're good to go
-  let structAST = {
-    type: 'struct',
-    subType: 'array',
-    keys: ast.types,
-  };
-  return compileStruct(state, structAST, generics);
 }
 
 function compileArray(state, ast, generics) {
