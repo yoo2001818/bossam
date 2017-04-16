@@ -178,8 +178,8 @@ function compileArray(state, ast, generics) {
   }
   codeGen.pushType('#value#[i]', type);
   if (nullable) {
-    codeGen.push('} else {');
-    codeGen.push('#value#[i] = null;');
+    codeGen.pushDecode('} else {');
+    codeGen.pushDecode('#value#[i] = null;');
     codeGen.push('}');
   }
   codeGen.push('}');
@@ -222,7 +222,7 @@ function compileStruct(state, ast, generics) {
     }
   }
   function finalizeNullable() {
-    if (nullableCount > 0) {
+    if (nullableCount > 0 && (nullableCount % 8) > 0) {
       let bytePos = (nullableCount / 8) | 0;
       let u8 = resolveType(state, { name: 'u8' });
       codeGen.pushTypeEncode(nullFieldName + '_' + bytePos, u8);
@@ -248,8 +248,8 @@ function compileStruct(state, ast, generics) {
         let shiftPos = 1 << (nullableCount % 8);
         codeGen.push(`if ((${flagName} & ${shiftPos}) !== 0) {`);
         codeGen.pushType(`${refs[key]}`, type);
-        codeGen.push('} else {');
-        codeGen.push(`${refs[key]} = null;`);
+        codeGen.pushDecode('} else {');
+        codeGen.pushDecode(`${refs[key]} = null;`);
         codeGen.push('}');
         nullableCount++;
       } else {

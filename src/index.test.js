@@ -34,10 +34,27 @@ describe('compileFromCode', () => {
       c: u8,
       d: ?u8,
       e: ?u16,
+      f: ?u8,
+      g: ?u8,
+      h: ?u8,
+      i: ?u8,
+      // Next byte from here
+      j: ?u8,
     }`);
-    let buffer = Data.encode({ a: 8, b: null, c: 15, d: 53, e: null });
-    expect(byteArrayToHex(buffer)).toBe('05080f35');
-    expect(Data.decode(buffer)).toEqual(
-      { a: 8, b: null, c: 15, d: 53, e: null });
+    let data = {
+      a: 8,
+      b: null,
+      c: 15,
+      d: 53,
+      e: null,
+      f: null,
+      g: null,
+      h: null,
+      i: 5,
+      j: 6,
+    };
+    let buffer = Data.encode(data);
+    expect(byteArrayToHex(buffer)).toBe('8501080f350506');
+    expect(Data.decode(buffer)).toEqual(data);
   });
 });

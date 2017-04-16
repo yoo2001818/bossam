@@ -131,8 +131,8 @@ const builtInNamespace = {
     }
     codeGen.pushType('#value#[i]', type);
     if (nullable) {
-      codeGen.push('} else {');
-      codeGen.push('#value#[i] = null;');
+      codeGen.pushDecode('} else {');
+      codeGen.pushDecode('#value#[i] = null;');
       codeGen.push('}');
     }
     codeGen.push('}');
