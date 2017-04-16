@@ -15,18 +15,25 @@ export default function chooseStringEncoder(charset = 'utf-8') {
 export function createNodeStringEncoder(charset) {
   return {
     name: 'String',
-    size: (value) => Buffer.byteLength(value, charset) + 4,
-    encodeImpl: (value, dataView) => {
+    size: function(value) {
+      let length = Buffer.byteLength(value, charset);
+      return length + this.uvar.size(length);
+    },
+    encodeImpl: function(value, dataView) {
       let size = Buffer.byteLength(value, charset);
-      dataView.setUint32(size);
+      this.uvar.encodeImpl(size, dataView);
       dataView.setString(size, value, charset);
     },
-    decodeImpl: (dataView) => dataView.getString(dataView.getUint32(), charset),
-    sizeCode: `size += Buffer.byteLength(#value#, "${charset}") + 4;\n`,
+    decodeImpl: function(dataView) {
+      return dataView.getString(this.uvar.decodeImpl(dataView), charset);
+    },
+    sizeCode: `var length = Buffer.byteLength(#value#, "${charset}");\n` +
+      'size += length + this.uvar.size(length);',
     encodeCode: `var size = Buffer.byteLength(#value#, "${charset}");\n` +
-    `dataView.setUint32(size);\n` +
+    `this.uvar.encodeImpl(size, dataView);\n` +
     `dataView.setString(size, #value#, "${charset}");\n`,
     decodeCode:
-      `#value# = dataView.getString(dataView.getUint32(), "${charset}");\n`,
+      `#value# = dataView.getString(this.uvar.decodeImpl(dataView), ` +
+      `"${charset}");\n`,
   };
 }

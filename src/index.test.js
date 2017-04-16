@@ -4,9 +4,9 @@ import byteArrayToHex from './util/byteArrayToHex';
 describe('compileFromCode', () => {
   // Bunch of integration tests
   it('should encode simple object struct correctly', () => {
-    let { Point } = compileFromCode('struct Point { x: i32, y: i32 }');
+    let { Point } = compileFromCode('struct Point { x: ivar, y: ivar }');
     let buffer = Point.encode({ x: 3, y: 19 });
-    expect(byteArrayToHex(buffer)).toBe('0000000300000013');
+    expect(byteArrayToHex(buffer)).toBe('0626');
     expect(Point.decode(buffer)).toEqual({ x: 3, y: 19 });
   });
   it('should encode simple array struct correctly', () => {
@@ -24,7 +24,7 @@ describe('compileFromCode', () => {
     let buffer = Data.encode({ str: '밯망hee' });
     // UTF-16 stream: bc2f b9dd 0068 0065 0065
     // UTF-8 stream: ebb0af eba79d 68 65 65
-    expect(byteArrayToHex(buffer)).toBe('00000009ebb0afeba79d686565');
+    expect(byteArrayToHex(buffer)).toBe('09ebb0afeba79d686565');
     expect(Data.decode(buffer)).toEqual({ str: '밯망hee' });
   });
   it('should encode object struct with nullable correctly', () => {

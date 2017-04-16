@@ -12,17 +12,18 @@ export default function createStringEncoder(charset = 'utf-8') {
     name: 'String',
     // Deny inlining the code
     locked: true,
-    size: (value) => {
-      // Int8Array + u32.
-      return encoder.encode(value).length + 4;
+    size: function(value) {
+      // Int8Array + uvar.
+      let length = encoder.encode(value).length;
+      return length + this.uvar.size(length);
     },
-    encodeImpl: (value, dataView) => {
+    encodeImpl: function(value, dataView) {
       let buffer = encoder.encode(value);
-      dataView.setUint32(buffer.length);
+      this.uvar.encodeImpl(buffer.length, dataView);
       dataView.setUint8Array(buffer);
     },
-    decodeImpl: (dataView) => {
-      let size = dataView.getUint32();
+    decodeImpl: function(dataView) {
+      let size = this.uvar.decodeImpl(dataView);
       return decoder.decode(dataView.getUint8Array(size));
     },
   };
@@ -33,15 +34,18 @@ export function createUTF16StringEncoder(littleEndian) {
     name: 'String',
     locked: true,
     // So deterministic
-    size: (value) => value.length * 2 + 4,
-    encodeImpl: (value, dataView) => {
-      dataView.setUint32(value.length);
+    size: function(value) {
+      let length = value.length * 2;
+      return length + this.uvar.size(length);
+    },
+    encodeImpl: function(value, dataView) {
+      this.uvar.encodeImpl(value.length * 2, dataView);
       for (let i = 0; i < value.length; ++i) {
         dataView.setUint16(value.charCodeAt(i), littleEndian);
       }
     },
-    decodeImpl: (dataView) => {
-      let size = dataView.getUint32();
+    decodeImpl: function(dataView) {
+      let size = this.uvar.decodeImpl(dataView) / 2;
       // If little endian is provided, we have to convert it word by word.
       if (littleEndian) {
         let data = new Uint16Array(size);
