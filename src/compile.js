@@ -141,6 +141,7 @@ function compileArray(state, ast, generics) {
   let type = resolveType(state, ast.type, generics);
   let codeGen = new CodeGenerator(state);
   let u8, nullFieldName;
+  let maxSize = 0;
   let nullable = ast.type.nullable;
   if (nullable) {
     // If the type is nullable, we have to use separate nullable fields to
@@ -148,6 +149,7 @@ function compileArray(state, ast, generics) {
     u8 = resolveType(state, { name: 'u8' });
     nullFieldName = 'nullCheck' + (state.namespace._refs++);
     codeGen.push(`var ${nullFieldName} = 0;`);
+    maxSize += Math.ceil(ast.size / 8);
   }
   codeGen.pushDecode(`#value# = new Array(${ast.size});`);
   codeGen.push(`for (var i = 0; i < ${ast.size}; ++i) {`);
@@ -173,7 +175,8 @@ function compileArray(state, ast, generics) {
     codeGen.push('}');
   }
   codeGen.push('}');
-  return codeGen.compile();
+  maxSize += type.maxSize * ast.size;
+  return codeGen.compile(maxSize);
 }
 
 function compileStruct(state, ast, generics) {
@@ -183,6 +186,7 @@ function compileStruct(state, ast, generics) {
   let refFieldName = 'ref' + (state.namespace._refs++);
   let refId = 0;
   let refs = {};
+  let maxSize = 0;
   function writeRefEncode(key) {
     let name = refFieldName + '_' + (refId++);
     refs[key] = name;
@@ -203,6 +207,7 @@ function compileStruct(state, ast, generics) {
         if (bytePos > 0) {
           codeGen.pushTypeEncode(nullFieldName + '_' + (bytePos - 1), u8);
         }
+        maxSize += 1;
         codeGen.pushEncode(`var ${fieldName} = 0;`);
       }
       let shiftPos = 1 << (nullableCount % 8);
@@ -216,6 +221,7 @@ function compileStruct(state, ast, generics) {
       let bytePos = (nullableCount / 8) | 0;
       let u8 = resolveType(state, { name: 'u8' });
       codeGen.pushTypeEncode(nullFieldName + '_' + bytePos, u8);
+      maxSize += 1;
     }
     nullableCount = 0;
   }
@@ -231,6 +237,7 @@ function compileStruct(state, ast, generics) {
       // decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
     } else {
       let type = resolveType(state, value, generics);
+      maxSize += type.maxSize;
       // If the type is nullable, read a byte to check if the data exists.
       if (value.nullable) {
         let bytePos = (nullableCount / 8) | 0;
@@ -303,7 +310,7 @@ function compileStruct(state, ast, generics) {
       break;
     }
   }
-  return codeGen.compile();
+  return codeGen.compile(maxSize);
 }
 
 function compileEnum(state, ast, generics, namespace) {
@@ -311,6 +318,8 @@ function compileEnum(state, ast, generics, namespace) {
   // compile them into switch loop.
   let codeGen = new CodeGenerator(state);
   let typeRef = JSON.stringify(ast.typeTarget);
+  let maxSize = 0;
+  let typeMaxSize = 0;
   if (ast.subType === 'array') typeRef = '0';
   // We have to build encode / decode routine separately - they can't be shared.
   // TODO Support nulls? Although it's not necessary at all, but it'd be good
@@ -323,6 +332,7 @@ function compileEnum(state, ast, generics, namespace) {
   codeGen.push(`var ${varOut};`);
   codeGen.pushEncode(`${varOut} = #value#;`);
   codeGen.pushTypeDecode(varName, typeType, true);
+  maxSize += typeType.maxSize;
   codeGen.pushEncode(`switch (#value#[${typeRef}]) {`);
   codeGen.pushDecode(`switch (${varName}) {`);
   // Now, insert case clauses using for loop.
@@ -350,6 +360,9 @@ function compileEnum(state, ast, generics, namespace) {
     // not possible yet, so we'll just use temporary variable to store the
     // result, then concat with the old array.
     codeGen.pushType(varOut, type);
+    if (typeMaxSize < type.maxSize) {
+      typeMaxSize = type.maxSize;
+    }
     if (ast.subType === 'array') {
       if (!type.ast.keys[0].jsConst) {
         codeGen.pushDecode(`${varOut}.unshift(${valueNameStr});`);
@@ -363,5 +376,6 @@ function compileEnum(state, ast, generics, namespace) {
   });
   codeGen.push('}');
   codeGen.pushDecode(`#value# = ${varOut};`);
-  return codeGen.compile();
+  maxSize += typeMaxSize;
+  return codeGen.compile(maxSize);
 }

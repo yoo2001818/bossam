@@ -14,6 +14,9 @@ export default class DataBuffer {
     }
     this.position = 0;
   }
+  getBufferSliced() {
+    return this.buffer.slice(0, this.position);
+  }
   getBuffer() {
     return this.buffer;
   }

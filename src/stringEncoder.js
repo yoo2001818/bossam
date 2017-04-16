@@ -12,6 +12,7 @@ export default function createStringEncoder(charset = 'utf-8') {
     name: 'String',
     // Deny inlining the code
     locked: true,
+    maxSize: Infinity,
     size: function(value) {
       // Int8Array + uvar.
       let length = encoder.encode(value).length;
@@ -33,6 +34,7 @@ export function createUTF16StringEncoder(littleEndian) {
   return {
     name: 'String',
     locked: true,
+    maxSize: Infinity,
     // So deterministic
     size: function(value) {
       let length = value.length * 2;

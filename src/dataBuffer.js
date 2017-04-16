@@ -16,6 +16,9 @@ export default class DataBuffer {
       this.buffer.byteOffset, this.buffer.byteLength);
     this.position = 0;
   }
+  getBufferSliced() {
+    return this.buffer.subarray(0, this.position);
+  }
   getBuffer() {
     return this.buffer;
   }

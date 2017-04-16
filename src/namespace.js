@@ -11,6 +11,7 @@ import createArrayEncoder from './arrayEncoder';
 const builtInNamespace = {
   i8: {
     name: 'i8',
+    maxSize: 1,
     size: () => 1,
     encodeImpl: (value, dataView) => dataView.setInt8(value),
     decodeImpl: (dataView) => dataView.getInt8(),
@@ -20,6 +21,7 @@ const builtInNamespace = {
   },
   u8: {
     name: 'u8',
+    maxSize: 1,
     size: () => 1,
     encodeImpl: (value, dataView) => dataView.setUint8(value),
     decodeImpl: (dataView) => dataView.getUint8(),
@@ -29,6 +31,7 @@ const builtInNamespace = {
   },
   i16: {
     name: 'i16',
+    maxSize: 2,
     size: () => 2,
     encodeImpl: (value, dataView) => dataView.setInt16(value),
     decodeImpl: (dataView) => dataView.getInt16(),
@@ -38,6 +41,7 @@ const builtInNamespace = {
   },
   u16: {
     name: 'u16',
+    maxSize: 2,
     size: () => 2,
     encodeImpl: (value, dataView) => dataView.setUint16(value),
     decodeImpl: (dataView) => dataView.getUint16(),
@@ -47,6 +51,7 @@ const builtInNamespace = {
   },
   i32: {
     name: 'i32',
+    maxSize: 4,
     size: () => 4,
     encodeImpl: (value, dataView) => dataView.setInt32(value),
     decodeImpl: (dataView) => dataView.getInt32(),
@@ -56,6 +61,7 @@ const builtInNamespace = {
   },
   u32: {
     name: 'u32',
+    maxSize: 4,
     size: () => 4,
     encodeImpl: (value, dataView) => dataView.setUint32(value),
     decodeImpl: (dataView) => dataView.getUint32(),
@@ -66,6 +72,7 @@ const builtInNamespace = {
   ivar: {
     name: 'ivar',
     locked: true,
+    maxSize: 5,
     size: (value) => ivar.getIntSize(value),
     encodeImpl: (value, dataView) => ivar.setIntVar(value, dataView),
     decodeImpl: (dataView) => ivar.getIntVar(dataView),
@@ -73,12 +80,14 @@ const builtInNamespace = {
   uvar: {
     name: 'uvar',
     locked: true,
+    maxSize: 5,
     size: (value) => uvar.getUintSize(value),
     encodeImpl: (value, dataView) => uvar.setUintVar(value, dataView),
     decodeImpl: (dataView) => uvar.getUintVar(dataView),
   },
   f32: {
     name: 'f32',
+    maxSize: 4,
     size: () => 4,
     encodeImpl: (value, dataView) => dataView.setFloat32(value),
     decodeImpl: (dataView) => dataView.getFloat32(),
@@ -88,6 +97,7 @@ const builtInNamespace = {
   },
   f64: {
     name: 'f64',
+    maxSize: 4,
     size: () => 8,
     encodeImpl: (value, dataView) => dataView.setFloat64(value),
     decodeImpl: (dataView) => dataView.getFloat64(),
@@ -97,6 +107,7 @@ const builtInNamespace = {
   },
   'bool': {
     name: 'bool',
+    maxSize: 1,
     size: () => 1,
     encodeImpl: (value, dataView) => dataView.setUint8(value ? 1 : 0),
     decodeImpl: (dataView) => !!dataView.getUint8(),

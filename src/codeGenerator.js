@@ -64,13 +64,14 @@ export default class CodeGenerator {
         .slice(0, -1));
     }
   }
-  compile() {
+  compile(maxSize) {
     const namespace = this.namespace;
     let output = {
       sizeCode: this.sizeCode.join('\n') + '\n',
       encodeCode: this.encodeCode.join('\n') + '\n',
       decodeCode: this.decodeCode.join('\n') + '\n',
     };
+    output.maxSize = maxSize;
     // Simply swap #value# with value and we're good to go.
     output.size = new Function('value',
       'var size = 0;\n' +
@@ -84,12 +85,22 @@ export default class CodeGenerator {
       output.decodeCode.replace(/#value#/g, 'value') +
       'return value;\n').bind(namespace);
     const dataBuffer = new DataBuffer();
-    output.encode = (value) => {
-      // Calculate size and create ArrayBuffer, then we're good
-      dataBuffer.newBuffer(output.size(value));
-      output.encodeImpl(value, dataBuffer);
-      return dataBuffer.getBuffer();
-    };
+    // If the max size is finite, we can optimize by creating largest buffer
+    // then slicing it
+    if (maxSize !== Infinity) {
+      output.encode = (value) => {
+        dataBuffer.newBuffer(maxSize);
+        output.encodeImpl(value, dataBuffer);
+        return dataBuffer.getBufferSliced();
+      };
+    } else {
+      output.encode = (value) => {
+        // Calculate size and create ArrayBuffer, then we're good
+        dataBuffer.newBuffer(output.size(value));
+        output.encodeImpl(value, dataBuffer);
+        return dataBuffer.getBuffer();
+      };
+    }
     output.decode = (buffer) => {
       dataBuffer.setBuffer(buffer);
       return output.decodeImpl(dataBuffer);

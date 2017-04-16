@@ -15,6 +15,7 @@ export default function chooseStringEncoder(charset = 'utf-8') {
 export function createNodeStringEncoder(charset) {
   return {
     name: 'String',
+    maxSize: Infinity,
     size: function(value) {
       let length = Buffer.byteLength(value, charset);
       return length + this.uvar.size(length);

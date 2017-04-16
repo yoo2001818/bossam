@@ -41,5 +41,5 @@ export default function createArrayEncoder(state, generics) {
     codeGen.push('}');
   }
   codeGen.push('}');
-  return codeGen.compile();
+  return codeGen.compile(Infinity);
 }
