@@ -66,6 +66,11 @@ describe('parse', () => {
         def: (Array<i32>, u32),
       }
     `));
+    parse(tokenize(`
+      struct Test {
+        abc: (),
+      }
+    `));
   });
   it('should parse inline structs', () => {
     parse(tokenize(`
@@ -74,6 +79,7 @@ describe('parse', () => {
           x: i32,
           y: i32,
         },
+        abcd: {},
       }
     `));
   });

@@ -69,4 +69,33 @@ describe('compileFromCode', () => {
       [-9, 22],
     ]);
   });
+  it('should encode inline object struct correctly', () => {
+    let { Transaction } = compileFromCode(`
+      struct Transaction {
+        price: ivar,
+        user: {
+          id: u32,
+          count: u8,
+        },
+      };
+    `);
+    let data = {
+      price: 1500,
+      user: {
+        id: 19999,
+        count: 13,
+      },
+    };
+    let buffer = Transaction.encode(data);
+    expect(byteArrayToHex(buffer)).toBe('8bb800004e1f0d');
+    expect(Transaction.decode(buffer)).toEqual(data);
+  });
+  it('should encode empty object', () => {
+    let { Data } = compileFromCode(`
+      struct Data {}
+    `);
+    let buffer = Data.encode({});
+    expect(byteArrayToHex(buffer)).toBe('');
+    expect(Data.decode(buffer)).toEqual({});
+  });
 });

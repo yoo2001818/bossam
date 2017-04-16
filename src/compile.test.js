@@ -118,12 +118,19 @@ describe('compile', () => {
       struct Test(Pos, ?Pos);
     `)));
   });
-  it('should compile tuples', () => {
+  it('should compile inline tuples', () => {
     compile(parse(tokenize(`
       struct Test {
         aa: String<"utf-8">,
         abc: (i32, u32, String),
         def: (Array<?i32>, u32),
+      }
+    `)));
+  });
+  it('should compile inline structs', () => {
+    compile(parse(tokenize(`
+      struct Test {
+        abc: {x: i32, y: i32},
       }
     `)));
   });

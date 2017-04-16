@@ -225,13 +225,19 @@ function defineInlineStruct(state, data, allowEmpty = false, generics) {
       data.subType = 'array';
       // Quite simple, since we just need to accept keywords again and again.
       data.keys = [];
+      let exited = false;
       function next() {
+        // If parenClose is reached, escape!
+        if (pullIf(state, 'parenClose')) {
+          exited = true;
+          return;
+        }
         data.keys.push(getType(state, generics));
         return pullIf(state, 'comma', next);
       }
       next();
       // Close the paren...
-      pull(state, 'parenClose');
+      if (!exited) pull(state, 'parenClose');
       // And expect a semicolon
       pullIf(state, 'semicolon');
       return data;
