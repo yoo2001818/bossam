@@ -69,7 +69,19 @@ const builtInNamespace = {
     'dataView.setUint32((low & 0x7fffffff) | ((high & 1) << 31));\n' +
     '}',
     // Decoding is also hard to implement.
-    '#value# = 0',
+    'var high = dataView.getUint32()\n' +
+    'var low = dataView.getUint32()\n' +
+    'if ((high & 0x80000000) !== 0) {\n' +
+    // Use 2's complement in here too..
+    'high = (high << 1) | (low >>> 31);\n' +
+    'low = ((low ^ 0x7fffffff) | 0x7ffffffff) + 1;\n' +
+    'var carry = (low & 0x80000000) !== 0;\n' +
+    'high = (~high) + carry;\n' +
+    '#value# = high * Math.pow(2, 31) + (low & 0x7fffffff);\n' +
+    '} else {' +
+    // Positive numbers are easy to implement.
+    '#value# = high * Math.pow(2, 32) + low;\n' +
+    '}'
   ),
   // ivar and uvar needs ivar, uvar objects which aren't available on the
   // compiled scope
