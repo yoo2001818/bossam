@@ -12,8 +12,8 @@ import CodeGenerator from './codeGenerator';
 function createPrimitive(name, size, encode, decode, maxSize) {
   let codeGen = new CodeGenerator();
   codeGen.sizeCode.push(`size += ${size};`);
-  codeGen.encodeCode.push(encode);
-  codeGen.decodeCode.push(`#value# = ${decode}`);
+  codeGen.encodeCode.push(`${encode}`);
+  codeGen.decodeCode.push(`${decode}`);
   let result = codeGen.compile(maxSize == null ? size : maxSize);
   result.name = name;
   return result;
@@ -21,29 +21,58 @@ function createPrimitive(name, size, encode, decode, maxSize) {
 
 const builtInNamespace = {
   i8: createPrimitive('i8', 1,
-    'dataView.setInt8(#value#)',
-    'dataView.getInt8()',
+    'dataView.setInt8(#value#);',
+    '#value# = dataView.getInt8();',
   ),
   u8: createPrimitive('u8', 1,
-    'dataView.setUint8(#value#)',
-    'dataView.getUint8()',
+    'dataView.setUint8(#value#);',
+    '#value# = dataView.getUint8();',
   ),
   i16: createPrimitive('i16', 2,
-    'dataView.setInt16(#value#)',
-    'dataView.getInt16()',
+    'dataView.setInt16(#value#);',
+    '#value# = dataView.getInt16();',
   ),
   u16: createPrimitive('u16', 2,
-    'dataView.setUint16(#value#)',
-    'dataView.getUint16()',
+    'dataView.setUint16(#value#);',
+    '#value# = dataView.getUint16();',
   ),
   i32: createPrimitive('i32', 4,
-    'dataView.setInt32(#value#)',
-    'dataView.getInt32()',
+    'dataView.setInt32(#value#);',
+    '#value# = dataView.getInt32();',
   ),
   u32: createPrimitive('u32', 4,
-    'dataView.setUint32(#value#)',
-    'dataView.getUint32()',
+    'dataView.setUint32(#value#);',
+    '#value# = dataView.getUint32();',
   ),
+  u64: createPrimitive('u64', 8,
+    'dataView.setUint32(Math.floor(#value# / Math.pow(2, 32)));\n' +
+    'dataView.setUint32(#value# % Math.pow(2, 32));',
+    '#value# = dataView.getUint32() * Math.pow(2, 32) + dataView.getUint32();',
+  ),
+  i64: createPrimitive('i64', 8,
+    // If a positive number is provided, it can be encoded using u64 encode.
+    // Negative number is more complicated - we have to calculate 2's
+    // complement by hand.
+    'if (#value# >= 0) {\n' +
+    'dataView.setUint32((#value# / Math.pow(2, 32)) | 0);\n' +
+    'dataView.setUint32(#value# % Math.pow(2, 32));\n' +
+    '} else {\n'+
+    // Since Javascript doesn't support carry result, we have to divide it into
+    // 32bits / 31bits - and mux them in the right order. Ouch.
+    'var high = (#value# | Math.pow(2, 31)) | 0;\n' +
+    'var low = #value# % Math.pow(2, 31);\n' +
+    'low = (low ^ 0x7fffffff) + 1;\n' +
+    'var carry = (low & 0x80000000) !== 0;\n' +
+    'high = (~high) + carry;\n' +
+    // Finally, mux them...
+    'dataView.setUint32(0x80000000 | (high >>> 1));\n' +
+    'dataView.setUint32((low & 0x7fffffff) | ((high & 1) << 31));\n' +
+    '}',
+    // Decoding is also hard to implement.
+    '#value# = 0',
+  ),
+  // ivar and uvar needs ivar, uvar objects which aren't available on the
+  // compiled scope
   ivar: {
     name: 'ivar',
     locked: true,
@@ -62,15 +91,15 @@ const builtInNamespace = {
   },
   f32: createPrimitive('f32', 4,
     'dataView.setFloat32(#value#)',
-    'dataView.getFloat32()',
+    '#value# = dataView.getFloat32()',
   ),
   f64: createPrimitive('f64', 8,
     'dataView.setFloat64(#value#)',
-    'dataView.getFloat64()',
+    '#value# = dataView.getFloat64()',
   ),
   bool: createPrimitive('bool', 1,
     'dataView.setUint8(#value# ? 1 : 0)',
-    '!!dataView.getUint8()',
+    '#value# = !!dataView.getUint8()',
   ),
   'Array<_>': createArrayEncoder,
   'Vec<_>': createArrayEncoder,

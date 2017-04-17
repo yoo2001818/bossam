@@ -7,6 +7,7 @@
     "test": "npm run jest && npm run flow",
     "jest": "jest",
     "flow": "flow",
+    "jestWatch": "jest --watch --notify",
     "build": "babel src -d lib --copy-files"
   },
   "jest": {
