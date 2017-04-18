@@ -356,6 +356,11 @@ function getName(state, generics, define) {
     next();
     // Digest angleClose
     pull(state, 'angleClose');
+    if (!define && data.name === 'Option' && data.generics.length === 1) {
+      data = data.generics[0];
+      data.nullable = true;
+      return data;
+    }
   });
   return data;
 }

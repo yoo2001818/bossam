@@ -29,11 +29,11 @@ describe('compileFromCode', () => {
   });
   it('should encode object struct with nullable correctly', () => {
     let { Data } = compileFromCode(`struct Data {
-      a: ?u8,
+      a: Option<u8>,
       b: ?u8,
       c: u8,
       d: ?u8,
-      e: ?u16,
+      e: Option<u16>,
       f: ?u8,
       g: ?u8,
       h: ?u8,
