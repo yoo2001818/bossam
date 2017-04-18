@@ -117,10 +117,14 @@ const builtInNamespace = {
   'Vec<_>': createArrayEncoder,
   'Array<_,_>': createArrayEncoder,
   'Vec<_,_>': createArrayEncoder,
-  String: createStringEncoder('utf-8'),
+  'String': createStringEncoder('utf-8'),
   'String<_>': (state, generics) => {
     return createStringEncoder(generics[0].name);
   },
+  'Date': createPrimitive('Date', 8,
+    'this.u64.encodeImpl(#value#.getTime(), dataView)',
+    '#value# = new Date(this.u64.decodeImpl(dataView))',
+  ),
   _refs: 0,
 };
 

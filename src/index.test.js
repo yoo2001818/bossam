@@ -138,4 +138,10 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('fffefefefefefeff');
     expect(Data.decode(buffer)).toEqual([-0x01010101010101]);
   });
+  it('should encode Date', () => {
+    let { Data } = compileFromCode('struct Data(Date);');
+    let buffer = Data.encode([new Date('1970-01-01T00:01Z')]);
+    expect(byteArrayToHex(buffer)).toBe('000000000000ea60');
+    expect(Data.decode(buffer)).toEqual([new Date('1970-01-01T00:01Z')]);
+  });
 });
