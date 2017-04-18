@@ -59,8 +59,8 @@ const builtInNamespace = {
     '} else {\n'+
     // Since Javascript doesn't support carry result, we have to divide it into
     // 32bits / 31bits - and mux them in the right order. Ouch.
-    'var high = (#value# | Math.pow(2, 31)) | 0;\n' +
-    'var low = #value# % Math.pow(2, 31);\n' +
+    'var high = (-#value# / Math.pow(2, 31)) | 0;\n' +
+    'var low = -#value# % Math.pow(2, 31);\n' +
     'low = (low ^ 0x7fffffff) + 1;\n' +
     'var carry = (low & 0x80000000) !== 0;\n' +
     'high = (~high) + carry;\n' +
@@ -74,10 +74,10 @@ const builtInNamespace = {
     'if ((high & 0x80000000) !== 0) {\n' +
     // Use 2's complement in here too..
     'high = (high << 1) | (low >>> 31);\n' +
-    'low = ((low ^ 0x7fffffff) | 0x7ffffffff) + 1;\n' +
-    'var carry = (low & 0x80000000) !== 0;\n' +
-    'high = (~high) + carry;\n' +
-    '#value# = high * Math.pow(2, 31) + (low & 0x7fffffff);\n' +
+    'low = ((low ^ 0x7fffffff) & 0x7ffffffff) + 1;\n' +
+    'var carry = low >>> 31;\n' +
+    'high = ((~high) >>> 0) + carry;\n' +
+    '#value# = -(high * Math.pow(2, 31) + (low & 0x7fffffff));\n' +
     '} else {' +
     // Positive numbers are easy to implement.
     '#value# = high * Math.pow(2, 32) + low;\n' +

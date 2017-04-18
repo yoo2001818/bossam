@@ -111,4 +111,31 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('050102030405');
     expect(Data.decode(buffer)).toEqual(data);
   });
+  it('should correctly encode u64', () => {
+    // Check 64, 63, 33, 32, 31th position especially. However, since
+    // Javascript double supports up to 53-bit integer precision, it's
+    // meaningless to check 64, 63th position.
+    let { Data } = compileFromCode('struct Data(u64);');
+    let buffer = Data.encode([0xffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('00000000ffffffff');
+    expect(Data.decode(buffer)).toEqual([0xffffffff]);
+    buffer = Data.encode([0xf9f9ffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('0000f9f9ffffffff');
+    expect(Data.decode(buffer)).toEqual([0xf9f9ffffffff]);
+  });
+  it('should correctly encode i64', () => {
+    let { Data } = compileFromCode('struct Data(i64);');
+    let buffer = Data.encode([0xffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('00000000ffffffff');
+    expect(Data.decode(buffer)).toEqual([0xffffffff]);
+    buffer = Data.encode([0xf9f9ffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('0000f9f9ffffffff');
+    expect(Data.decode(buffer)).toEqual([0xf9f9ffffffff]);
+    buffer = Data.encode([-0xf9f9ffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('ffff060600000001');
+    expect(Data.decode(buffer)).toEqual([-0xf9f9ffffffff]);
+    buffer = Data.encode([-0x01010101010101]);
+    expect(byteArrayToHex(buffer)).toBe('fffefefefefefeff');
+    expect(Data.decode(buffer)).toEqual([-0x01010101010101]);
+  });
 });
