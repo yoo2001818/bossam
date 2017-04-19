@@ -130,5 +130,5 @@ const builtInNamespace = {
 
 // Creates namespace. So simple :P
 export default function createNamespace() {
-  return Object.assign({}, builtInNamespace);
+  return Object.create(builtInNamespace);
 }
