@@ -24,6 +24,7 @@ export default function offlineCompile(namespace,
   for (let key in namespace) {
     let type = namespace[key];
     if (type.locked || type.encodeCode == null) continue;
+    if (!namespace.hasOwnProperty(key)) continue;
     let keyEncoded = JSON.stringify(key);
     output.push(`namespace[${keyEncoded}] = {`);
     // Since sizeCode / encodeCode / decodeCode is not available, we need to
@@ -31,14 +32,14 @@ export default function offlineCompile(namespace,
     output.push('locked: true,');
     // Add code
     output.push('size: (function(value) {');
-    output.push(output.sizeCode.replace(/#value#/g, 'value'));
+    output.push(type.sizeCode.replace(/#value#/g, 'value'));
     output.push('}).bind(namespace),');
     output.push('encodeImpl: (function(value, dataView) {');
-    output.push(output.encodeCode.replace(/#value#/g, 'value'));
+    output.push(type.encodeCode.replace(/#value#/g, 'value'));
     output.push('}).bind(namespace),');
     output.push('decodeImpl: (function(dataView) {');
     output.push('var value;');
-    output.push(output.decodeCode.replace(/#value#/g, 'value'));
+    output.push(type.decodeCode.replace(/#value#/g, 'value'));
     output.push('return value;');
     output.push('}).bind(namespace),');
     // Then add user-facing functions.
@@ -55,5 +56,6 @@ export default function offlineCompile(namespace,
     output.push('}');
     output.push('};');
   }
+  output.push('module.exports = namespace;');
   return output.join('\n');
 }
