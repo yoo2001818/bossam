@@ -13,18 +13,18 @@ export default function createStringEncoder(charset = 'utf-8') {
     // Deny inlining the code
     locked: true,
     maxSize: Infinity,
-    size: function(value) {
+    size: function(namespace, value) {
       // Int8Array + uvar.
       let length = encoder.encode(value).length;
-      return length + this.uvar.size(length);
+      return length + namespace.uvar.size(namespace, length);
     },
-    encodeImpl: function(value, dataView) {
+    encodeImpl: function(namespace, value, dataView) {
       let buffer = encoder.encode(value);
-      this.uvar.encodeImpl(buffer.length, dataView);
+      namespace.uvar.encodeImpl(namespace, buffer.length, dataView);
       dataView.setUint8Array(buffer);
     },
-    decodeImpl: function(dataView) {
-      let size = this.uvar.decodeImpl(dataView);
+    decodeImpl: function(namespace, dataView) {
+      let size = namespace.uvar.decodeImpl(namespace, dataView);
       return decoder.decode(dataView.getUint8Array(size));
     },
   };
@@ -36,18 +36,18 @@ export function createUTF16StringEncoder(littleEndian) {
     locked: true,
     maxSize: Infinity,
     // So deterministic
-    size: function(value) {
+    size: function(namespace, value) {
       let length = value.length * 2;
-      return length + this.uvar.size(length);
+      return length + namespace.uvar.size(namespace, length);
     },
-    encodeImpl: function(value, dataView) {
-      this.uvar.encodeImpl(value.length * 2, dataView);
+    encodeImpl: function(namespace, value, dataView) {
+      namespace.uvar.encodeImpl(namespace, value.length * 2, dataView);
       for (let i = 0; i < value.length; ++i) {
         dataView.setUint16(value.charCodeAt(i), littleEndian);
       }
     },
-    decodeImpl: function(dataView) {
-      let size = this.uvar.decodeImpl(dataView) / 2;
+    decodeImpl: function(namespace, dataView) {
+      let size = namespace.uvar.decodeImpl(namespace, dataView) / 2;
       // If little endian is provided, we have to convert it word by word.
       if (littleEndian) {
         let data = new Uint16Array(size);

@@ -16,25 +16,27 @@ export function createNodeStringEncoder(charset) {
   return {
     name: 'String',
     maxSize: Infinity,
-    size: function(value) {
+    locked: true,
+    size: function(namespace, value) {
       let length = Buffer.byteLength(value, charset);
-      return length + this.uvar.size(length);
+      return length + namespace.uvar.size(namespace, length);
     },
-    encodeImpl: function(value, dataView) {
+    encodeImpl: function(namespace, value, dataView) {
       let size = Buffer.byteLength(value, charset);
-      this.uvar.encodeImpl(size, dataView);
+      namespace.uvar.encodeImpl(namespace, size, dataView);
       dataView.setString(size, value, charset);
     },
-    decodeImpl: function(dataView) {
-      return dataView.getString(this.uvar.decodeImpl(dataView), charset);
+    decodeImpl: function(namespace, dataView) {
+      return dataView.getString(namespace.uvar.decodeImpl(
+        namespace, dataView), charset);
     },
     sizeCode: `var length = Buffer.byteLength(#value#, "${charset}");\n` +
-      'size += length + this.uvar.size(length);',
+      'size += length + namespace.uvar.size(namespace, length);',
     encodeCode: `var size = Buffer.byteLength(#value#, "${charset}");\n` +
-    `this.uvar.encodeImpl(size, dataView);\n` +
+    `namespace.uvar.encodeImpl(namespace, size, dataView);\n` +
     `dataView.setString(size, #value#, "${charset}");\n`,
     decodeCode:
-      `#value# = dataView.getString(this.uvar.decodeImpl(dataView), ` +
-      `"${charset}");\n`,
+      `#value# = dataView.getString(namespace.uvar.decodeImpl(` +
+      `namespace, dataView), "${charset}");\n`,
   };
 }

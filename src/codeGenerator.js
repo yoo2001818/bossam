@@ -38,9 +38,10 @@ export default class CodeGenerator {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
-      let ref = `this['${type.name}']`;
-      this.sizeCode.push(`size += ${ref}.size(${keyword});`);
-      this.encodeCode.push(`${ref}.encodeImpl(${keyword}, dataView);`);
+      let ref = `namespace['${type.name}']`;
+      this.sizeCode.push(`size += ${ref}.size(namespace, ${keyword});`);
+      this.encodeCode.push(
+        `${ref}.encodeImpl(namespace, ${keyword}, dataView);`);
     } else {
       // Or include the code into the output code. :)
       this.sizeCode.push(type.sizeCode.replace(/#value#/g, keyword)
@@ -56,8 +57,9 @@ export default class CodeGenerator {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
-      let ref = `this['${type.name}']`;
-      this.decodeCode.push(`${keyword} = ${ref}.decodeImpl(dataView);`);
+      let ref = `namespace['${type.name}']`;
+      this.decodeCode.push(
+        `${keyword} = ${ref}.decodeImpl(namespace, dataView);`);
     } else {
       // Or include the code into the output code. :)
       this.decodeCode.push(type.decodeCode.replace(/#value#/g, keyword)
@@ -73,27 +75,27 @@ export default class CodeGenerator {
     };
     output.maxSize = maxSize;
     // Simply swap #value# with value and we're good to go.
-    output.size = new Function('value',
+    output.size = new Function('namespace', 'value',
       'var size = 0;\n' +
       output.sizeCode.replace(/#value#/g, 'value') +
-      'return size;\n').bind(namespace);
-    output.encodeImpl = new Function('value', 'dataView',
-      output.encodeCode.replace(/#value#/g, 'value')).bind(namespace);
+      'return size;\n');
+    output.encodeImpl = new Function('namespace', 'value', 'dataView',
+      output.encodeCode.replace(/#value#/g, 'value'));
     // Decode code should define output target, so define them like this.
-    output.decodeImpl = new Function('dataView',
+    output.decodeImpl = new Function('namespace', 'dataView',
       'var value;\n' +
       output.decodeCode.replace(/#value#/g, 'value') +
-      'return value;\n').bind(namespace);
+      'return value;\n');
     const dataBuffer = new DataBuffer();
     output.encode = (value) => {
       // Calculate size and create ArrayBuffer, then we're good
-      dataBuffer.newBuffer(output.size(value));
-      output.encodeImpl(value, dataBuffer);
+      dataBuffer.newBuffer(output.size(namespace, value));
+      output.encodeImpl(namespace, value, dataBuffer);
       return dataBuffer.getBuffer();
     };
     output.decode = (buffer) => {
       dataBuffer.setBuffer(buffer);
-      return output.decodeImpl(dataBuffer);
+      return output.decodeImpl(namespace, dataBuffer);
     };
     return output;
   }

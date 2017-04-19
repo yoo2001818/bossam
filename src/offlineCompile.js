@@ -31,28 +31,28 @@ export default function offlineCompile(namespace,
     // put this to avoid inline compliation, if any.
     output.push('locked: true,');
     // Add code
-    output.push('size: (function(value) {');
+    output.push('size: function(namespace, value) {');
     output.push(type.sizeCode.replace(/#value#/g, 'value'));
-    output.push('}).bind(namespace),');
-    output.push('encodeImpl: (function(value, dataView) {');
+    output.push('},');
+    output.push('encodeImpl: function(namespace, value, dataView) {');
     output.push(type.encodeCode.replace(/#value#/g, 'value'));
-    output.push('}).bind(namespace),');
-    output.push('decodeImpl: (function(dataView) {');
+    output.push('},');
+    output.push('decodeImpl: function(namespace, dataView) {');
     output.push('var value;');
     output.push(type.decodeCode.replace(/#value#/g, 'value'));
     output.push('return value;');
-    output.push('}).bind(namespace),');
+    output.push('},');
     // Then add user-facing functions.
     output.push('encode: function(value) {');
     output.push(`var entry = namespace[${keyEncoded}];`);
-    output.push('dataBuffer.newBuffer(entry.size(value));');
-    output.push('entry.encodeImpl(value, dataBuffer);');
+    output.push('dataBuffer.newBuffer(entry.size(namespace, value));');
+    output.push('entry.encodeImpl(namespace, value, dataBuffer);');
     output.push('return dataBuffer.getBuffer();');
     output.push('},');
     output.push('decode: function(buffer) {');
     output.push(`var entry = namespace[${keyEncoded}];`);
     output.push('dataBuffer.setBuffer(buffer);');
-    output.push('returnentry.decodeImpl(dataBuffer);');
+    output.push('returnentry.decodeImpl(namespace, dataBuffer);');
     output.push('}');
     output.push('};');
   }
