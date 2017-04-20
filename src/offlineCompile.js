@@ -8,15 +8,16 @@ export default function offlineCompile(namespace,
   // createNamespace() on the compiled code. Thus, CommonJS environment is
   // necessary to use this.
   // TODO Support custom primitive types.
-  output.push(`var createNamespace = require("${requireScope}namespace.js");`);
+  output.push(
+    `var createNamespace = require('${requireScope}namespace.js').default;`);
   // Import DataBuffer too.
   output.push(`
     // Change to node.js variant if Buffer exists
     var DataBuffer;
     if (typeof Buffer !== 'undefined') {
-      DataBuffer = require('./dataBuffer.node').default;
+      DataBuffer = require('${requireScope}dataBuffer.node').default;
     } else {
-      DataBuffer = require('./dataBuffer').default;
+      DataBuffer = require('${requireScope}dataBuffer').default;
     }`.replace(/^ +/gm, ''));
   output.push('var namespace = createNamespace();');
   output.push('var dataBuffer = new DataBuffer();');
@@ -32,7 +33,9 @@ export default function offlineCompile(namespace,
     output.push('locked: true,');
     // Add code
     output.push('size: function(namespace, value) {');
+    output.push('var size = 0;');
     output.push(type.sizeCode.replace(/#value#/g, 'value'));
+    output.push('return size;');
     output.push('},');
     output.push('encodeImpl: function(namespace, value, dataView) {');
     output.push(type.encodeCode.replace(/#value#/g, 'value'));
@@ -52,7 +55,7 @@ export default function offlineCompile(namespace,
     output.push('decode: function(buffer) {');
     output.push(`var entry = namespace[${keyEncoded}];`);
     output.push('dataBuffer.setBuffer(buffer);');
-    output.push('returnentry.decodeImpl(namespace, dataBuffer);');
+    output.push('return entry.decodeImpl(namespace, dataBuffer);');
     output.push('}');
     output.push('};');
   }
