@@ -1,5 +1,5 @@
 // Compiles the namespace to use without embeding the entire compiler stack
-// on the program. 
+// on the program.
 export default function offlineCompile(namespace,
   requireScope = 'bossam/lib/',
 ) {

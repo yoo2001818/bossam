@@ -9,7 +9,7 @@ describe('offlineCompile', () => {
     let code = offlineCompile(namespace, './');
     let compiled = (function() {
       let module = {};
-      eval(code);
+      eval(code); // eslint-disable-line
       return module.exports;
     })();
     let Point = compiled.Point;

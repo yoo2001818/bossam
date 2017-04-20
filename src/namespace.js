@@ -56,7 +56,7 @@ const builtInNamespace = {
     'if (#value# >= 0) {\n' +
     'dataView.setUint32((#value# / Math.pow(2, 32)) | 0);\n' +
     'dataView.setUint32(#value# % Math.pow(2, 32));\n' +
-    '} else {\n'+
+    '} else {\n' +
     // Since Javascript doesn't support carry result, we have to divide it into
     // 32bits / 31bits - and mux them in the right order. Ouch.
     'var high = (-#value# / Math.pow(2, 31)) | 0;\n' +
