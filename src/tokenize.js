@@ -43,7 +43,7 @@ const SYNTAX_TABLE = {
   ],
 };
 
-export default function *tokenize(code) {
+export default function * tokenize(code) {
   let state = { mode: 'main' };
   let index = 0;
   while (index < code.length) {

@@ -1,13 +1,13 @@
 import * as ivar from './util/ivar';
 import * as uvar from './util/uvar';
+import createArrayEncoder from './arrayEncoder';
+import CodeGenerator from './codeGenerator';
 let createStringEncoder;
 if (typeof Buffer !== 'undefined') {
   createStringEncoder = require('./stringEncoder.node').default;
 } else {
   createStringEncoder = require('./stringEncoder').default;
 }
-import createArrayEncoder from './arrayEncoder';
-import CodeGenerator from './codeGenerator';
 
 function createPrimitive(name, size, encode, decode, maxSize) {
   let codeGen = new CodeGenerator();
