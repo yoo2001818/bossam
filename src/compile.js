@@ -363,7 +363,13 @@ function compileEnum(state, ast, generics, namespace) {
     // If the value is array, we have to increment each key. This is
     // not possible yet, so we'll just use temporary variable to store the
     // result, then concat with the old array.
-    codeGen.pushType(varOut, type);
+    if (ast.subType === 'array' && type.ast.subType === 'empty') {
+      // Handle empty structs in an array separately.
+      codeGen.pushType(varOut,
+        compileStruct(state, { type: 'struct', subType: 'array', keys: [] }));
+    } else {
+      codeGen.pushType(varOut, type);
+    }
     if (typeMaxSize < type.maxSize) {
       typeMaxSize = type.maxSize;
     }
