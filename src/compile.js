@@ -340,7 +340,9 @@ function compileEnum(state, ast, generics, namespace) {
     let keyStr = JSON.stringify(key);
     let valueNameStr = JSON.stringify(valueName);
     let type = resolveType(localState, { name: valueName }, generics);
-    if (ast.subType === 'array' && type.ast.keys[0].jsConst) {
+    if (ast.subType === 'array' && type.ast.keys[0] &&
+      type.ast.keys[0].jsConst
+    ) {
       valueNameStr = JSON.stringify(type.ast.keys[0].value);
     } else if (type.ast.values != null &&
       type.ast.values[ast.typeTarget] != null
@@ -350,8 +352,10 @@ function compileEnum(state, ast, generics, namespace) {
     codeGen.pushEncode(`case ${valueNameStr}:`);
     codeGen.pushDecode(`case ${keyStr}:`);
     // Slice header if const is not specified at front.
-    if (ast.subType === 'array' && !type.ast.keys[0].jsConst) {
-      codeGen.pushEncode(`${varOut} = #value#.slice(0);`);
+    if (ast.subType === 'array' && !(type.ast.keys[0] &&
+      type.ast.keys[0].jsConst)
+    ) {
+      codeGen.pushEncode(`${varOut} = #value#.slice(1);`);
     }
     // Encode the type; this is already done in decoder.
     codeGen.pushTypeEncode(keyStr, typeType);
@@ -364,7 +368,7 @@ function compileEnum(state, ast, generics, namespace) {
       typeMaxSize = type.maxSize;
     }
     if (ast.subType === 'array') {
-      if (!type.ast.keys[0].jsConst) {
+      if (!(type.ast.keys[0] && type.ast.keys[0].jsConst)) {
         codeGen.pushDecode(`${varOut}.unshift(${valueNameStr});`);
       }
     } else if (type.ast.values == null ||
@@ -374,6 +378,10 @@ function compileEnum(state, ast, generics, namespace) {
     }
     codeGen.push('break;');
   });
+  codeGen.push('default:');
+  codeGen.pushEncode(
+    `throw new Error('Unknown value ' + #value#[${typeRef}]);`);
+  codeGen.pushDecode(`throw new Error('Unknown value ' + ${varName});`);
   codeGen.push('}');
   codeGen.pushDecode(`#value# = ${varOut};`);
   maxSize += typeMaxSize;

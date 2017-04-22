@@ -135,7 +135,7 @@ All types use big endian unless specified.
 - u64 - 64bit unsigned integer. Since Javascript doesn't support 64bit
   integers, Bossam forcefully converts them to double. This means that numbers
   are usable up to 53 bits.
-- i64 - 64bit signed integer. Same constriant for u64 affects this too.
+- i64 - 64bit signed integer. Same constraint for u64 affects this too.
 - ivar - varying signed integer. Description is in the below.
 - uvar - varying unsigned integer. Description is in the below.
 - f32 - 32bit IEEE 754 floating number.

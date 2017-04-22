@@ -144,4 +144,79 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('000000000000ea60');
     expect(Data.decode(buffer)).toEqual([new Date('1970-01-01T00:01Z')]);
   });
+  it('should encode empty enums', () => {
+    let { Data } = compileFromCode('enum Data { a, b, c, d }');
+    let buffer = Data.encode({ type: 'c' });
+    expect(byteArrayToHex(buffer)).toBe('02');
+    expect(Data.decode(buffer)).toEqual({ type: 'c' });
+  });
+  it('should throw error if enum type is not found', () => {
+    let { Data } = compileFromCode('enum Data { a, b, c, d }');
+    expect(() => Data.encode({ type: 'haha' })).toThrow();
+    expect(() => Data.decode(new Uint8Array([53]))).toThrow();
+  });
+  it('should encode tuple enums', () => {
+    let { Data } = compileFromCode('enum Data { a(i8), b(i8, i8), c, d }');
+    let buffer = Data.encode(['a', 15]);
+    expect(byteArrayToHex(buffer)).toBe('000f');
+    expect(Data.decode(buffer)).toEqual(['a', 15]);
+    buffer = Data.encode(['b', 0x23, 0x32]);
+    expect(byteArrayToHex(buffer)).toBe('012332');
+    expect(Data.decode(buffer)).toEqual(['b', 0x23, 0x32]);
+    buffer = Data.encode(['c']);
+    expect(byteArrayToHex(buffer)).toBe('02');
+    expect(Data.decode(buffer)).toEqual(['c']);
+  });
+  it('should encode object enums', () => {
+    let { Data } = compileFromCode(
+      'enum Data { a { a: u8 }, b { a: u8, b: u8 }, c, d }');
+    let buffer = Data.encode({ type: 'a', a: 0x32 });
+    expect(byteArrayToHex(buffer)).toBe('0032');
+    expect(Data.decode(buffer)).toEqual({ type: 'a', a: 0x32 });
+    buffer = Data.encode({ type: 'b', a: 0x32, b: 0x55 });
+    expect(byteArrayToHex(buffer)).toBe('013255');
+    expect(Data.decode(buffer)).toEqual({ type: 'b', a: 0x32, b: 0x55 });
+    buffer = Data.encode({ type: 'c' });
+    expect(byteArrayToHex(buffer)).toBe('02');
+    expect(Data.decode(buffer)).toEqual({ type: 'c' });
+  });
+  it('should use specified type in enums', () => {
+    let { Data } = compileFromCode('enum Data(u32) { a, b, c, d }');
+    let buffer = Data.encode({ type: 'c' });
+    expect(byteArrayToHex(buffer)).toBe('00000002');
+    expect(Data.decode(buffer)).toEqual({ type: 'c' });
+  });
+  it('should use specified type name in object enums', () => {
+    let { Data } = compileFromCode(
+      'enum Data(u8, tt) { a { a: u8 }, b { a: u8, b: u8 }, c, d }');
+    let buffer = Data.encode({ tt: 'a', a: 0x32 });
+    expect(byteArrayToHex(buffer)).toBe('0032');
+    expect(Data.decode(buffer)).toEqual({ tt: 'a', a: 0x32 });
+  });
+  it('should use specified type encoded value in enums', () => {
+    let { Data } = compileFromCode(`
+      enum Data(String) {
+        "haha" => a { a: u8 },
+        "meh" => b { a: u8, b: u8 },
+        "why" => c,
+        "goof" => d,
+      }
+    `);
+    let buffer = Data.encode({ type: 'a', a: 0x32 });
+    expect(byteArrayToHex(buffer)).toBe('046861686132');
+    expect(Data.decode(buffer)).toEqual({ type: 'a', a: 0x32 });
+  });
+  it('should use specified type value in enums', () => {
+    let { Data } = compileFromCode(`
+      enum Data {
+        a { type: "Hello there", a: u8 },
+        b { a: u8, b: u8 },
+        c,
+        d,
+      }
+    `);
+    let buffer = Data.encode({ type: 'Hello there', a: 0x32 });
+    expect(byteArrayToHex(buffer)).toBe('0032');
+    expect(Data.decode(buffer)).toEqual({ type: 'Hello there', a: 0x32 });
+  });
 });
