@@ -1,8 +1,8 @@
 {
   "name": "bossam",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "JavaScript object serialization library with Rust-like DSL",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "test": "npm run jest && npm run lint",
     "jest": "jest",
