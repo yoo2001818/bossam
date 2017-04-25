@@ -2,11 +2,15 @@ import * as ivar from './util/ivar';
 import * as uvar from './util/uvar';
 import createArrayEncoder from './arrayEncoder';
 import CodeGenerator from './codeGenerator';
-let createStringEncoder;
+let createStringEncoder, createStringEncoderFixed;
 if (typeof Buffer !== 'undefined') {
   createStringEncoder = require('./stringEncoder.node').default;
+  createStringEncoderFixed =
+    require('./stringEncoder.node').createStringEncoderFixed;
 } else {
   createStringEncoder = require('./stringEncoder').default;
+  createStringEncoderFixed =
+    require('./stringEncoder').createStringEncoderFixed;
 }
 
 function createPrimitive(name, size, encode, decode, maxSize) {
@@ -121,6 +125,12 @@ const builtInNamespace = {
   'String': createStringEncoder('utf-8'),
   'String<_>': (state, generics) => {
     return createStringEncoder(generics[0].name);
+  },
+  'str<_>': (state, generics) => {
+    return createStringEncoderFixed('utf-8', generics[0].name);
+  },
+  'str<_,_>': (state, generics) => {
+    return createStringEncoderFixed(generics[0].name, generics[1].name);
   },
   'Date': createPrimitive('Date', 8,
     'namespace.u64.encodeImpl(namespace, #value#.getTime(), dataView)',
