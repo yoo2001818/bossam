@@ -147,4 +147,15 @@ describe('compile', () => {
       struct Test = f32;
     `)));
   });
+  it('should compile aliases with generics', () => {
+    let namespace = compile(parse(tokenize(`
+      struct Test<T> = T;
+      struct Data = Test<f32>;
+      struct Data2 {
+        a: Test<f32>
+      }
+    `)));
+    expect(namespace.Data.maxSize).toBe(4);
+    expect(namespace.Data2.maxSize).toBe(4);
+  });
 });
