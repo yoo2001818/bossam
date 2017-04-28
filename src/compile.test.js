@@ -158,4 +158,21 @@ describe('compile', () => {
     expect(namespace.Data.maxSize).toBe(4);
     expect(namespace.Data2.maxSize).toBe(4);
   });
+  it('should compile inline structs with generics', () => {
+    let namespace = compile(parse(tokenize(`
+      struct Test<T> {
+        pos: {
+          x: T,
+          y: T,
+        },
+        vel: {
+          x: T,
+          y: T,
+        },
+        pos2: (T, T),
+      }
+      struct Data = Test<f32>;
+    `)));
+    expect(namespace.Data.maxSize).toBe(24);
+  });
 });
