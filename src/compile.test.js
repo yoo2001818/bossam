@@ -142,4 +142,9 @@ describe('compile', () => {
       }
     `)));
   });
+  it('should compile aliases', () => {
+    compile(parse(tokenize(`
+      struct Test = f32;
+    `)));
+  });
 });

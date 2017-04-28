@@ -100,6 +100,12 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('');
     expect(Data.decode(buffer)).toEqual({});
   });
+  it('should encode alias structs', () => {
+    let { Data } = compileFromCode('struct Data = u8;');
+    let buffer = Data.encode(3);
+    expect(byteArrayToHex(buffer)).toBe('03');
+    expect(Data.decode(buffer)).toEqual(3);
+  });
   it('should encode Array', () => {
     let { Data } = compileFromCode(`
       struct Data {

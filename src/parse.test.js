@@ -90,6 +90,11 @@ describe('parse', () => {
       }
     `));
   });
+  it('should parse aliases', () => {
+    parse(tokenize(`
+      struct Test = f32;
+    `));
+  });
   it('should parse generics', () => {
     parse(tokenize('struct Test<A, B, C> {}'));
     parse(tokenize('struct Test<A> {}'));

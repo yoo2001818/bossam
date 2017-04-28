@@ -133,6 +133,9 @@ function compileBlock(state, astBlock, generics, namespace) {
   if (astBlock.type === 'enum') {
     return compileEnum(state, astBlock, generics, namespace);
   }
+  if (astBlock.type === 'alias') {
+    return resolveType(state, astBlock.key, generics);
+  }
   throw new Error('Unknown type ' + astBlock.type);
 }
 

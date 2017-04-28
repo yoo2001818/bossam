@@ -183,6 +183,12 @@ function defineInlineStruct(state, data, allowEmpty = false, generics) {
       data.keys = [];
       return data;
     },
+    equal: () => {
+      data.type = 'alias';
+      data.key = getType(state, generics);
+      pullIf(state, 'semicolon');
+      return data;
+    },
     curlyOpen: () => {
       data.subType = 'object';
       data.values = {};
