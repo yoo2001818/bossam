@@ -139,6 +139,17 @@ function compileBlock(state, astBlock, generics, namespace) {
   throw new Error('Unknown type ' + astBlock.type);
 }
 
+const TYPED_ARRAY_MAP = {
+  u8: 'Uint8Array',
+  i8: 'Int8Array',
+  u16: 'Uint16Array',
+  i16: 'Int16Array',
+  u32: 'Uint32Array',
+  i32: 'Int32Array',
+  f32: 'Float32Array',
+  f64: 'Float64Array',
+};
+
 function compileArray(state, ast, generics) {
   // Just a downgraded version of Array<T>.
   let type = resolveType(state, ast.type, generics);
@@ -146,6 +157,12 @@ function compileArray(state, ast, generics) {
   let u8, nullFieldName;
   let maxSize = 0;
   let nullable = ast.type.nullable;
+  // If the value can be processed using TypedArray, handle it using it.
+  if (!nullable && TYPED_ARRAY_MAP[type.name] != null) {
+    let arrayName = TYPED_ARRAY_MAP[type.name];
+    // TODO DataBuffer should implement get/setTypedArray method...
+    return codeGen.compile(type.maxSize * ast.size);
+  }
   if (nullable) {
     // If the type is nullable, we have to use separate nullable fields to
     // spare some bits
