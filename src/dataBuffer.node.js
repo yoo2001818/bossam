@@ -53,26 +53,6 @@ export default class DataBuffer {
     }
     return output;
   }
-  setUint16Array(buffer) {
-    const size = buffer.length;
-    const output = new Uint16Array(this.buffer.buffer,
-      this.position + this.buffer.byteOffset, size);
-    this.position += size;
-    output.set(buffer);
-  }
-  getUint16Array(size, buffer) {
-    const output = new Uint16Array(this.buffer.buffer,
-      this.position + this.buffer.byteOffset, size);
-    this.position += size;
-    if (buffer != null) {
-      if (buffer.length > size) {
-        throw new Error('Buffer size is smaller than required size');
-      }
-      buffer.set(output);
-      return buffer;
-    }
-    return output;
-  }
 }
 
 // Implement each accessor function. Since copy & paste is not preferred,
@@ -116,4 +96,32 @@ export default class DataBuffer {
   `);
   DataBuffer.prototype[getterLEName] = getterLE;
   DataBuffer.prototype[setterLEName] = setterLE;
+
+  // Create array accessors
+  const getterArrayName = 'get' + type + 'Array';
+  const setterArrayName = 'set' + type + 'Array';
+  if (DataBuffer.prototype[getterArrayName] != null) {
+    const getterArray = new Function('size', 'buffer', `
+      var output = new ${type}Array(this.buffer.buffer,
+        this.position + this.buffer.byteOffset, size);
+      this.position += size;
+      if (buffer != null) {
+        if (buffer.length > size) {
+          throw new Error('Buffer size is smaller than requested size');
+        }
+        buffer.set(output);
+        return buffer;
+      }
+      return output;
+    `);
+    const setterArray = new Function('buffer', `
+      var size = buffer.byteLength;
+      var output = new ${type}Array(this.buffer.buffer,
+        this.position + this.buffer.byteOffset, size);
+      this.position += size;
+      output.set(buffer);
+    `);
+    DataBuffer.prototype[getterArrayName] = getterArray;
+    DataBuffer.prototype[setterArrayName] = setterArray;
+  }
 });
