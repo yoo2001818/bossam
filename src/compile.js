@@ -113,8 +113,10 @@ function resolveBlock(state, name, generics, parentGenerics) {
   // Otherwise, just compile it!
   let result = compileBlock(state.root || state, astBlock, genericsData,
     namespace[key].namespace);
-  result.name = key;
-  result.ast = astBlock.ast || astBlock;
+  if (result.name == null) {
+    result.name = key;
+    result.ast = astBlock.ast || astBlock;
+  }
   // If the AST has namespace definition, move previous namespace definition
   // in locked object onto the result object.
   if (astBlock.namespace != null) result.namespace = namespace[key].namespace;
@@ -182,12 +184,12 @@ function compileArray(state, ast, generics) {
     codeGen.push(`var ${nullFieldName} = 0;`);
     maxSize += Math.ceil(ast.size / 8);
     codeGen.pushEncode(`if (#value#.length > ${ast.size}) {`);
-    codeGen.pushEncode(`throw new Error('[${ast.name}; ${ast.size}]` +
+    codeGen.pushEncode(`throw new Error('[${type.name}; ${ast.size}]` +
       `specified; but array size ' + #value#.length + ' received');`);
     codeGen.pushEncode(`}`);
   } else {
     codeGen.pushEncode(`if (#value#.length !== ${ast.size}) {`);
-    codeGen.pushEncode(`throw new Error('[${ast.name}; ${ast.size}]` +
+    codeGen.pushEncode(`throw new Error('[${type.name}; ${ast.size}]` +
       `specified; but array size ' + #value#.length + ' received');`);
     codeGen.pushEncode(`}`);
   }
