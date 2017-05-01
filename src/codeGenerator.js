@@ -25,6 +25,13 @@ export default class CodeGenerator {
     this.sizeCode.push(code);
     this.encodeCode.push(code);
   }
+  pushEncodeOnly(code) {
+    // For rare instances that encode and size code don't share same code.
+    this.encodeCode.push(code);
+  }
+  pushSize(code) {
+    this.sizeCode.push(code);
+  }
   pushDecode(code) {
     this.decodeCode.push(code);
   }

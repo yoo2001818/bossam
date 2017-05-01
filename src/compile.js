@@ -165,18 +165,15 @@ function compileArray(state, ast, generics) {
     // unnecessary to copy the array to avoid modifying original array.
     let byteSize = ast.size * type.maxSize;
     codeGen.pushDecode(
-      `#value# = dataView.get${arrayName}(${byteSize}).slice();`);
+      `#value# = dataView.get${arrayName}(${byteSize});`);
     // Encoding can be done by simply calling setTypedArray, too.
     // But if the size of the array is different, we must zero-fill the
     // remaining space to avoid corruption.
-    codeGen.pushEncode(
+    codeGen.pushEncodeOnly(
       `dataView.set${arrayName}(#value#, ${byteSize});`);
+    codeGen.pushSize(`size += ${byteSize};`);
     return codeGen.compile(byteSize);
   }
-  codeGen.pushEncode(`if (#value#.length > ${ast.size}) {`);
-  codeGen.pushEncode(`throw new Error('[${ast.name}; ${ast.size}] specified; ` +
-    `but array size ' + #value#.length + ' received');`);
-  codeGen.pushEncode(`}`);
   if (nullable) {
     // If the type is nullable, we have to use separate nullable fields to
     // spare some bits
@@ -184,6 +181,15 @@ function compileArray(state, ast, generics) {
     nullFieldName = 'nullCheck' + (state.namespace._refs++);
     codeGen.push(`var ${nullFieldName} = 0;`);
     maxSize += Math.ceil(ast.size / 8);
+    codeGen.pushEncode(`if (#value#.length > ${ast.size}) {`);
+    codeGen.pushEncode(`throw new Error('[${ast.name}; ${ast.size}]` +
+      `specified; but array size ' + #value#.length + ' received');`);
+    codeGen.pushEncode(`}`);
+  } else {
+    codeGen.pushEncode(`if (#value#.length !== ${ast.size}) {`);
+    codeGen.pushEncode(`throw new Error('[${ast.name}; ${ast.size}]` +
+      `specified; but array size ' + #value#.length + ' received');`);
+    codeGen.pushEncode(`}`);
   }
   codeGen.pushDecode(`#value# = new Array(${ast.size});`);
   codeGen.push(`for (var i = 0; i < ${ast.size}; ++i) {`);

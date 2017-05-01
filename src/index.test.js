@@ -225,4 +225,24 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('0032');
     expect(Data.decode(buffer)).toEqual({ type: 'Hello there', a: 0x32 });
   });
+  it('should use TypedArray for primitive types', () => {
+    let { Data } = compileFromCode(`
+      struct Data {
+        u8: [u8; 10],
+        u16: [u16; 8],
+        f32: [f32; 4],
+      }
+    `);
+    let data = {
+      u8: [1, 2, 3, 4, 5, 6, 7, 7, 9, 15],
+      u16: new Uint8Array([6, 5, 4, 3, 9, 5, 2, 1]),
+      f32: new Float32Array([0.5, 0.9, 1.54, 9.88]),
+    };
+    let buffer = Data.encode(data);
+    expect(Data.decode(buffer)).toEqual({
+      u8: new Uint8Array(data.u8),
+      u16: new Uint16Array(data.u16),
+      f32: new Float32Array(data.f32),
+    });
+  });
 });

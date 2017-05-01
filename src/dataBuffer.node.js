@@ -100,7 +100,7 @@ export default class DataBuffer {
   // Create array accessors
   const getterArrayName = 'get' + type + 'Array';
   const setterArrayName = 'set' + type + 'Array';
-  if (DataBuffer.prototype[getterArrayName] != null) {
+  if (DataBuffer.prototype[getterArrayName] == null) {
     const getterArray = new Function('size', 'buffer', `
       var output = new ${type}Array(this.buffer.buffer,
         this.position + this.buffer.byteOffset, size);
