@@ -4,9 +4,9 @@ import createArrayEncoder from './arrayEncoder';
 import CodeGenerator from './codeGenerator';
 let createStringEncoder, createStringEncoderFixed;
 if (typeof Buffer !== 'undefined') {
-  createStringEncoder = require('./stringEncoder.node').default;
+  createStringEncoder = require('./stringEncoder').default;
   createStringEncoderFixed =
-    require('./stringEncoder.node').createStringEncoderFixed;
+    require('./stringEncoder').createStringEncoderFixed;
 } else {
   createStringEncoder = require('./stringEncoder').default;
   createStringEncoderFixed =

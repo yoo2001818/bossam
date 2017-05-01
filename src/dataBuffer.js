@@ -66,8 +66,17 @@ export default class DataBuffer {
   // Create array accessors
   const getterArrayName = 'get' + type + 'Array';
   const setterArrayName = 'set' + type + 'Array';
+  // If the array is aligned, it can directly use TypedArray - but if it
+  // doesn't, we have to create intermediate array.
   const getterArray = new Function('size', 'buffer', `
-    var output = new ${type}Array(this.dataView.buffer, this.position, size);
+    var output;
+    if (this.position % ${bytes} === 0) {
+      output = new ${type}Array(this.dataView.buffer, this.position,
+      size / ${bytes});
+    } else {
+      output = new ${type}Array(this.dataView.buffer.slice(
+        this.position, this.position + size), 0);
+    }
     this.position += size;
     if (buffer != null) {
       if (buffer.length > size) {
@@ -86,13 +95,29 @@ export default class DataBuffer {
   // byteLength should be avoided - instead, TypedArray.BYTES_PER_ELEMENT
   // should be used.
   // If the buffer array size exceeds provided size, it should throw an error.
+  // If the array is aligned, it can directly use TypedArray - but if it
+  // doesn't, we have to create intermediate array.
   const setterArray = new Function('buffer', 'size', `
-    var bufferSize = ${type}Array.BYTES_PER_ELEMENT * buffer.length;
+    var bufferSize = ${bytes} * buffer.length;
     var maxSize = size == null ? bufferSize : size;
-    var output = new ${type}Array(this.dataView.buffer, this.position,
-      maxSize);
-    output.set(buffer);
-    output.fill(0, buffer.length);
+    if (this.position % ${bytes} === 0) {
+      var output = new ${type}Array(this.dataView.buffer, this.position,
+        maxSize);
+      output.set(buffer);
+      output.fill(0, buffer.length);
+    } else {
+      var src;
+      if (buffer instanceof ${type}Array) {
+        src = new Uint8Array(buffer.buffer, buffer.byteOffset,
+          buffer.byteLength);
+      } else {
+        src = new Uint8Array(new ${type}Array(buffer).buffer, 0);
+      }
+      var output = new Uint8Array(this.dataView.buffer, this.position,
+        maxSize);
+      output.set(src);
+      output.fill(0, bufferSize);
+    }
     this.position += maxSize;
   `);
   DataBuffer.prototype[getterArrayName] = getterArray;
