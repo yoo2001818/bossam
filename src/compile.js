@@ -173,6 +173,10 @@ function compileArray(state, ast, generics) {
       `dataView.set${arrayName}(#value#, ${byteSize});`);
     return codeGen.compile(byteSize);
   }
+  codeGen.pushEncode(`if (#value#.length > ${ast.size}) {`);
+  codeGen.pushEncode(`throw new Error('[${ast.name}; ${ast.size}] specified; ` +
+    `but array size ' + #value#.length + ' received');`);
+  codeGen.pushEncode(`}`);
   if (nullable) {
     // If the type is nullable, we have to use separate nullable fields to
     // spare some bits
