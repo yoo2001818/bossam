@@ -160,8 +160,18 @@ function compileArray(state, ast, generics) {
   // If the value can be processed using TypedArray, handle it using it.
   if (!nullable && TYPED_ARRAY_MAP[type.name] != null) {
     let arrayName = TYPED_ARRAY_MAP[type.name];
-    // TODO DataBuffer should implement get/setTypedArray method...
-    return codeGen.compile(type.maxSize * ast.size);
+    // Simply call getTypedArray function and that's good enough.
+    // However, modification of the typed array should be avoided, but it's
+    // unnecessary to copy the array to avoid modifying original array.
+    let byteSize = ast.size * type.maxSize;
+    codeGen.pushDecode(
+      `#value# = dataView.get${arrayName}(${byteSize}).slice();`);
+    // Encoding can be done by simply calling setTypedArray, too.
+    // But if the size of the array is different, we must zero-fill the
+    // remaining space to avoid corruption.
+    codeGen.pushEncode(
+      `dataView.set${arrayName}(#value#, ${byteSize});`);
+    return codeGen.compile(byteSize);
   }
   if (nullable) {
     // If the type is nullable, we have to use separate nullable fields to

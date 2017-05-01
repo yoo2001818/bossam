@@ -114,12 +114,22 @@ export default class DataBuffer {
       }
       return output;
     `);
-    const setterArray = new Function('buffer', `
-      var size = buffer.byteLength;
+    // It may look weird because the arguments order is different from getter,
+    // but it's alright because 'size' is optional in setter, and 'buffer' is
+    // optional in getter.
+
+    // Because buffer can be a regular array, or typed array of other type,
+    // byteLength should be avoided - instead, TypedArray.BYTES_PER_ELEMENT
+    // should be used.
+    // If the buffer array size exceeds provided size, it should throw an error.
+    const setterArray = new Function('buffer', 'size', `
+      var bufferSize = ${type}Array.BYTES_PER_ELEMENT * buffer.length;
+      var maxSize = size == null ? bufferSize : size;
       var output = new ${type}Array(this.buffer.buffer,
-        this.position + this.buffer.byteOffset, size);
-      this.position += size;
+        this.position + this.buffer.byteOffset, maxSize);
       output.set(buffer);
+      output.fill(0, buffer.length);
+      this.position += maxSize;
     `);
     DataBuffer.prototype[getterArrayName] = getterArray;
     DataBuffer.prototype[setterArrayName] = setterArray;
