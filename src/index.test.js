@@ -112,7 +112,7 @@ describe('compileFromCode', () => {
         data: Array<u8, 8>,
       }
     `);
-    let data = { data: [1, 2, 3, 4, 5] };
+    let data = { data: Buffer.from([1, 2, 3, 4, 5]) };
     let buffer = Data.encode(data);
     expect(byteArrayToHex(buffer)).toBe('050102030405');
     expect(Data.decode(buffer)).toEqual(data);
