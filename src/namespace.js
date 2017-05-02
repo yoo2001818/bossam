@@ -132,6 +132,36 @@ const builtInNamespace = {
   'str<#,#>': (state, generics) => {
     return createStringEncoderFixed(generics[0].name, generics[1].name);
   },
+  'Padded<_,#>': (state, generics) => {
+    let type = state.resolveType(generics[0]);
+    let size = generics[1].name;
+    let codeGen = new CodeGenerator(state);
+    let posVar = 'pos' + (state.namespace._refs++);
+    if (generics[0].nullable) {
+      // TODO Implement nullable, but maybe it'd be better to forward it?
+      throw new Error('Nullable objects are unsupported by Padded<T,S> - ' +
+        'Please move it outside of Padded<T,S>, so it would be ?Padded<T,S>, ' +
+        'instead of Padded<?T,S>.');
+    }
+    // Record start position
+    codeGen.push(`var ${posVar} = dataView.position;`);
+    // Decode / encode type normally
+    codeGen.pushType('#value#', type);
+    // Check diff and fill it. If the diff is lower than 0, throw an error
+    // since the request cannot be satisfied - overflow.
+    codeGen.push(`${posVar} = dataView.position - ${posVar};`);
+    codeGen.push(`if (${posVar} > ${size}) {`);
+    codeGen.push(`throw new Error('Encoded ${type.name} is larger than ` +
+      `requested Padded size. Shouldn't be larger than ${size} bytes but was ` +
+      `' + ${posVar} + ' bytes long');`);
+    codeGen.push(`}`);
+    // If being decoded, just fast-forward. But it should be zero-filled while
+    // encoding - it's not safe (We're using unsafe methods in Node.js variant)
+    codeGen.pushDecode(`dataView.position += ${size} - ${posVar};`);
+    // TODO Implement zero-fill.
+    codeGen.pushEncode(`dataView.position += ${size} - ${posVar};`);
+    return codeGen.compile(size);
+  },
   'Date': createPrimitive('Date', 8,
     'namespace.u64.encodeImpl(namespace, #value#.getTime(), dataView)',
     '#value# = new Date(namespace.u64.decodeImpl(namespace, dataView))',

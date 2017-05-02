@@ -229,10 +229,10 @@ describe('compileFromCode', () => {
     let { Data } = compileFromCode('enum Data { A { x: u8 }, B = Data.A }');
     let buffer = Data.encode({ type: 'B', x: 0x32 });
     expect(byteArrayToHex(buffer)).toBe('0132');
-    expect(Data.decode(buffer)).toEqual({ type: 'B', x: 32 });
+    expect(Data.decode(buffer)).toEqual({ type: 'B', x: 0x32 });
     buffer = Data.encode({ type: 'A', x: 0x32 });
     expect(byteArrayToHex(buffer)).toBe('0032');
-    expect(Data.decode(buffer)).toEqual({ type: 'A', x: 32 });
+    expect(Data.decode(buffer)).toEqual({ type: 'A', x: 0x32 });
   });
   it('should use TypedArray for primitive types', () => {
     let { Data } = compileFromCode(`
