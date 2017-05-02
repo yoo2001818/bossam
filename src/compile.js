@@ -1,5 +1,5 @@
 import createNamespace from './namespace';
-import getIdentifier from './util/getIdentifier';
+import getIdentifier, { getGenericIdentifier } from './util/getIdentifier';
 import CodeGenerator from './codeGenerator';
 import { generateArrayEncoderCode } from './arrayEncoder';
 
@@ -53,8 +53,8 @@ function resolveType(state, type, parentGenerics) {
       if (typeVal.generic === true) {
         resolvedTypeVal = parentGenerics[typeVal.name];
       }
-      let astKey = getIdentifier({ name: resolvedTypeVal.name },
-        resolvedTypeVal.generics && resolvedTypeVal.generics.map(() => '_'));
+      let astKey = getGenericIdentifier({ name: resolvedTypeVal.name },
+        resolvedTypeVal.generics);
       let block = resolveBlock(prev, resolvedTypeVal.name,
         resolvedTypeVal.generics, parentGenerics);
       if (i === resolvedType.length - 1) {
@@ -88,7 +88,7 @@ function resolveBlock(state, name, generics, parentGenerics) {
   // the generics template.
   if (generics != null && astBlock == null) {
     let template = resolveBlock(state,
-      getIdentifier({ name }, generics.map(() => '_')));
+      getGenericIdentifier({ name }, generics));
     if (template == null) throw new Error(`${key} is not defined`);
     // Swap the astBlock to the template and continue.
     astBlock = template;

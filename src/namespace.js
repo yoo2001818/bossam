@@ -120,16 +120,16 @@ const builtInNamespace = {
   ),
   'Array<_>': createArrayEncoder,
   'Vec<_>': createArrayEncoder,
-  'Array<_,_>': createArrayEncoder,
-  'Vec<_,_>': createArrayEncoder,
+  'Array<_,#>': createArrayEncoder,
+  'Vec<_,#>': createArrayEncoder,
   'String': createStringEncoder('utf-8'),
-  'String<_>': (state, generics) => {
+  'String<#>': (state, generics) => {
     return createStringEncoder(generics[0].name);
   },
-  'str<_>': (state, generics) => {
+  'str<#>': (state, generics) => {
     return createStringEncoderFixed('utf-8', generics[0].name);
   },
-  'str<_,_>': (state, generics) => {
+  'str<#,#>': (state, generics) => {
     return createStringEncoderFixed(generics[0].name, generics[1].name);
   },
   'Date': createPrimitive('Date', 8,
