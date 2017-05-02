@@ -102,7 +102,7 @@ function defineEnum(state) {
     // Now, pull the struct.
     let value = defineStruct(state, true, data.generics);
     // Enforce the type mode.
-    if (value.subType !== 'empty') {
+    if (value.subType !== 'empty' && value.type !== 'alias') {
       if (data.subType != null && data.subType !== value.subType) {
         throw new Error('Enum data type can\'t be mixed');
       }
