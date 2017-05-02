@@ -102,8 +102,15 @@ export default class DataBuffer {
   const setterArrayName = 'set' + type + 'Array';
   if (DataBuffer.prototype[getterArrayName] == null) {
     const getterArray = new Function('size', 'buffer', `
-      var output = new ${type}Array(this.buffer.buffer,
-        this.position + this.buffer.byteOffset, size);
+      var pos = this.position + this.buffer.byteOffset;
+      var output;
+      if (pos % ${bytes} === 0) {
+        output = new ${type}Array(this.buffer.buffer, pos,
+        size / ${bytes});
+      } else {
+        output = new ${type}Array(this.buffer.buffer.slice(
+          pos, pos + size), 0);
+      }
       this.position += size;
       if (buffer != null) {
         if (buffer.length > size) {
@@ -123,12 +130,25 @@ export default class DataBuffer {
     // should be used.
     // If the buffer array size exceeds provided size, it should throw an error.
     const setterArray = new Function('buffer', 'size', `
-      var bufferSize = ${type}Array.BYTES_PER_ELEMENT * buffer.length;
+      var pos = this.position + this.buffer.byteOffset;
+      var bufferSize = ${bytes} * buffer.length;
       var maxSize = size == null ? bufferSize : size;
-      var output = new ${type}Array(this.buffer.buffer,
-        this.position + this.buffer.byteOffset, maxSize);
-      output.set(buffer);
-      output.fill(0, buffer.length);
+      if (this.position % ${bytes} === 0) {
+        var output = new ${type}Array(this.buffer.buffer, pos, maxSize);
+        output.set(buffer);
+        output.fill(0, buffer.length);
+      } else {
+        var src;
+        if (buffer instanceof ${type}Array) {
+          src = new Uint8Array(buffer.buffer, buffer.byteOffset,
+            buffer.byteLength);
+        } else {
+          src = new Uint8Array(new ${type}Array(buffer).buffer, 0);
+        }
+        var output = new Uint8Array(this.buffer.buffer, pos, maxSize);
+        output.set(src);
+        output.fill(0, bufferSize);
+      }
       this.position += maxSize;
     `);
     DataBuffer.prototype[getterArrayName] = getterArray;

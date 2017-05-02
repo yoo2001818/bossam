@@ -1,7 +1,7 @@
 // Change to node.js variant if Buffer exists
 let DataBuffer;
 if (typeof Buffer !== 'undefined') {
-  DataBuffer = require('./dataBuffer').default;
+  DataBuffer = require('./dataBuffer.node').default;
 } else {
   DataBuffer = require('./dataBuffer').default;
 }

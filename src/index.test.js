@@ -240,7 +240,7 @@ describe('compileFromCode', () => {
     };
     let buffer = Data.encode(data);
     expect(Data.decode(buffer)).toEqual({
-      u8: new Uint8Array(data.u8),
+      u8: Buffer.from(data.u8),
       u16: new Uint16Array(data.u16),
       f32: new Float32Array(data.f32),
     });
