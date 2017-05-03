@@ -39,20 +39,24 @@ export default class CodeGenerator {
     this.pushTypeEncode(keyword, type);
     this.pushTypeDecode(keyword, type, doVar);
   }
-  pushTypeEncode(keyword, type) {
+  pushTypeEncode(keyword, type, noSize) {
     // Pull the value from the namespace.
     if (type == null || type.locked) {
       // Namespace value is false; since the function is not available yet,
       // (This means there is a circular reference) just call the method
       // directly.
       let ref = `namespace['${type.name}']`;
-      this.sizeCode.push(`size += ${ref}.size(namespace, ${keyword});`);
+      if (!noSize) {
+        this.sizeCode.push(`size += ${ref}.size(namespace, ${keyword});`);
+      }
       this.encodeCode.push(
         `${ref}.encodeImpl(namespace, ${keyword}, dataView);`);
     } else {
       // Or include the code into the output code. :)
-      this.sizeCode.push(type.sizeCode.replace(/#value#/g, keyword)
-        .slice(0, -1));
+      if (!noSize) {
+        this.sizeCode.push(type.sizeCode.replace(/#value#/g, keyword)
+          .slice(0, -1));
+      }
       this.encodeCode.push(type.encodeCode.replace(/#value#/g, keyword)
         .slice(0, -1));
     }

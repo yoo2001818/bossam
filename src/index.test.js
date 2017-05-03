@@ -254,4 +254,16 @@ describe('compileFromCode', () => {
       f32: new Float32Array(data.f32),
     });
   });
+  it('should encode Padded correctly', () => {
+    let { Data } = compileFromCode(`
+      struct Data2 {
+        a: u16,
+        b: u16,
+      }
+      struct Data = Padded<Data2, 8>;
+    `);
+    let buffer = Data.encode({ a: 0x3, b: 0x5 });
+    expect(byteArrayToHex(buffer)).toBe('0003000500000000');
+    expect(Data.decode(buffer)).toEqual({ a: 0x3, b: 0x5 });
+  });
 });

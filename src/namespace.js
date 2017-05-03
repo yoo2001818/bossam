@@ -144,22 +144,29 @@ const builtInNamespace = {
         'instead of Padded<?T,S>.');
     }
     // Record start position
-    codeGen.push(`var ${posVar} = dataView.position;`);
+    codeGen.pushEncodeOnly(`var ${posVar} = dataView.position;`);
+    codeGen.pushDecode(`var ${posVar} = dataView.position;`);
+    codeGen.pushSize(`size += ${size};`);
     // Decode / encode type normally
-    codeGen.pushType('#value#', type);
+    codeGen.pushTypeEncode('#value#', type, true);
+    codeGen.pushTypeDecode('#value#', type);
     // Check diff and fill it. If the diff is lower than 0, throw an error
     // since the request cannot be satisfied - overflow.
-    codeGen.push(`${posVar} = dataView.position - ${posVar};`);
-    codeGen.push(`if (${posVar} > ${size}) {`);
-    codeGen.push(`throw new Error('Encoded ${type.name} is larger than ` +
-      `requested Padded size. Shouldn't be larger than ${size} bytes but was ` +
-      `' + ${posVar} + ' bytes long');`);
-    codeGen.push(`}`);
+    let posVarSetCode = `
+      ${posVar} = dataView.position - ${posVar};
+      if (${posVar} > ${size}) {
+        throw new Error('Encoded ${type.name} is larger than requested Padded' +
+          'size. Shouldn\\'t be larger than ${size} bytes but was' +
+          ${posVar} + ' bytes long');
+      }
+    `;
+    codeGen.pushDecode(posVarSetCode);
+    codeGen.pushEncodeOnly(posVarSetCode);
     // If being decoded, just fast-forward. But it should be zero-filled while
     // encoding - it's not safe (We're using unsafe methods in Node.js variant)
     codeGen.pushDecode(`dataView.position += ${size} - ${posVar};`);
     // TODO Implement zero-fill.
-    codeGen.pushEncode(`dataView.position += ${size} - ${posVar};`);
+    codeGen.pushEncodeOnly(`dataView.position += ${size} - ${posVar};`);
     return codeGen.compile(size);
   },
   'Date': createPrimitive('Date', 8,
