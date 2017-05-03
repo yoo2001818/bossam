@@ -165,8 +165,7 @@ const builtInNamespace = {
     // If being decoded, just fast-forward. But it should be zero-filled while
     // encoding - it's not safe (We're using unsafe methods in Node.js variant)
     codeGen.pushDecode(`dataView.position += ${size} - ${posVar};`);
-    // TODO Implement zero-fill.
-    codeGen.pushEncodeOnly(`dataView.position += ${size} - ${posVar};`);
+    codeGen.pushEncodeOnly(`dataView.fill(0, ${size} - ${posVar});`);
     return codeGen.compile(size);
   },
   'Date': createPrimitive('Date', 8,

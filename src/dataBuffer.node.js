@@ -53,6 +53,10 @@ export default class DataBuffer {
     }
     return output;
   }
+  fill(value, bytes) {
+    this.buffer.fill(value, this.position, this.position + bytes);
+    this.position += bytes;
+  }
 }
 
 // Implement each accessor function. Since copy & paste is not preferred,
