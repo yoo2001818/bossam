@@ -144,6 +144,7 @@ function compileBlock(state, astBlock, generics, namespace) {
     return compileEnum(state, astBlock, generics, namespace);
   }
   if (astBlock.type === 'alias') {
+    if (astBlock.nullable) throw new Error('Alias should not use nullable');
     return resolveType(state, astBlock.key, generics);
   }
   throw new Error('Unknown type ' + astBlock.type);
