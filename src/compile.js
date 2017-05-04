@@ -82,6 +82,10 @@ function resolveBlock(state, name, generics, parentGenerics) {
   if (generics != null && parentGenerics != null) {
     genericsData = generics.map(v => v.generic ? parentGenerics[v.name] : v);
   }
+  // We should skip writing generics data to namespace if one of generics value
+  // is not named - it'll likely to cause a trouble.
+  let skipKeyWrite = genericsData != null &&
+    genericsData.some(v => v.inline);
   let key = getIdentifier({ name }, genericsData);
   let astBlock = ast[key];
   // If 'generics' is provided and the astBlock is missing, compile against
@@ -95,11 +99,14 @@ function resolveBlock(state, name, generics, parentGenerics) {
   } else if (astBlock == null && namespace[key] == null) {
     throw new Error(`${key} is not defined`);
   }
-  // If the block is already compiled, skip it.
-  if (namespace[key] != null) return namespace[key];
-  // 'Lock' the output object to avoid stack overflow. Any other functions
-  // meeting this locked object will use proxy objects instead.
-  namespace[key] = { name: key, locked: true, namespace: {} };
+  let namespaceVal = {};
+  if (!skipKeyWrite) {
+    // If the block is already compiled, skip it.
+    if (namespace[key] != null) return namespace[key];
+    // 'Lock' the output object to avoid stack overflow. Any other functions
+    // meeting this locked object will use proxy objects instead.
+    namespace[key] = { name: key, locked: true, namespace: namespaceVal };
+  }
   // If 'generics' is not defined and the block uses generics, return a
   // function that compiles the block using generics.
   if (generics == null && astBlock.generics != null) {
@@ -113,7 +120,7 @@ function resolveBlock(state, name, generics, parentGenerics) {
   }
   // Otherwise, just compile it!
   let result = compileBlock(state.root || state, astBlock, genericsData,
-    namespace[key].namespace);
+    namespaceVal);
   if (result.name == null) {
     result.name = key;
     result.ast = astBlock.ast || astBlock;
@@ -121,7 +128,7 @@ function resolveBlock(state, name, generics, parentGenerics) {
   // If the AST has namespace definition, move previous namespace definition
   // in locked object onto the result object.
   if (astBlock.namespace != null) result.namespace = namespace[key].namespace;
-  namespace[key] = result;
+  if (!skipKeyWrite) namespace[key] = result;
   return result;
 }
 

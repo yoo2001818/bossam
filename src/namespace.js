@@ -2,15 +2,11 @@ import * as ivar from './util/ivar';
 import * as uvar from './util/uvar';
 import createArrayEncoder from './arrayEncoder';
 import CodeGenerator from './codeGenerator';
-let createStringEncoder, createStringEncoderFixed;
+let createStringEncoder;
 if (typeof Buffer !== 'undefined') {
   createStringEncoder = require('./stringEncoder.node').default;
-  createStringEncoderFixed =
-    require('./stringEncoder.node').createStringEncoderFixed;
 } else {
   createStringEncoder = require('./stringEncoder').default;
-  createStringEncoderFixed =
-    require('./stringEncoder').createStringEncoderFixed;
 }
 
 function createPrimitive(name, size, encode, decode, maxSize) {
@@ -126,12 +122,6 @@ const builtInNamespace = {
   'String<#>': (state, generics) => {
     return createStringEncoder(generics[0].name);
   },
-  'str<#>': (state, generics) => {
-    return createStringEncoderFixed('utf-8', generics[0].name);
-  },
-  'str<#,#>': (state, generics) => {
-    return createStringEncoderFixed(generics[0].name, generics[1].name);
-  },
   'Padded<_,#>': (state, generics) => {
     let type = state.resolveType(generics[0]);
     let size = generics[1].name;
@@ -156,7 +146,7 @@ const builtInNamespace = {
       ${posVar} = dataView.position - ${posVar};
       if (${posVar} > ${size}) {
         throw new Error('Encoded ${type.name} is larger than requested Padded' +
-          'size. Shouldn\\'t be larger than ${size} bytes but was' +
+          ' size. Shouldn\\'t be larger than ${size} bytes but was ' +
           ${posVar} + ' bytes long');
       }
     `;

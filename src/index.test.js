@@ -255,15 +255,32 @@ describe('compileFromCode', () => {
     });
   });
   it('should encode Padded correctly', () => {
-    let { Data } = compileFromCode(`
+    let { Data, Data3 } = compileFromCode(`
       struct Data2 {
         a: u16,
         b: u16,
       }
       struct Data = Padded<Data2, 8>;
+      struct Data3 = Padded<Data2, 1>;
     `);
     let buffer = Data.encode({ a: 0x3, b: 0x5 });
     expect(byteArrayToHex(buffer)).toBe('0003000500000000');
     expect(Data.decode(buffer)).toEqual({ a: 0x3, b: 0x5 });
+    expect(() => Data3.encode({ a: 0, b: 0 })).toThrow();
+  });
+  it('should encode anonymous types correctly', () => {
+    let namespace = compileFromCode(`
+      struct DataPre = Padded<{
+        y: u8,
+      }, 2>;
+      struct Data = Padded<{
+        x: u8,
+      }, 2>;
+      struct Data2 = { x: i8 };
+    `);
+    let Data = namespace.Data;
+    let buffer = Data.encode({ x: 0x13 });
+    expect(byteArrayToHex(buffer)).toBe('1300');
+    expect(Data.decode(buffer)).toEqual({ x: 0x13 });
   });
 });
