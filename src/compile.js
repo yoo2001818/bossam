@@ -314,7 +314,7 @@ function compileEnum(namespace, ast, generics, namespaceLow) {
   let varName = 'enumType' + (namespace._refs++);
   let varOut = 'enumData' + (namespace._refs++);
   let typeType = resolveType(namespace, ast.typeType, generics);
-  let localNamespace = Object.assign({}, namespaceLow, {
+  let localNamespace = Object.assign(namespaceLow, {
     root: namespace,
     ast: ast.namespace,
   });
