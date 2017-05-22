@@ -8,8 +8,8 @@ if (typeof Buffer !== 'undefined') {
 
 // Generates the code using new Function()
 export default class CodeGenerator {
-  constructor(state) {
-    this.namespace = state && state.namespace;
+  constructor(namespace) {
+    this.namespace = namespace;
     this.sizeCode = [];
     this.decodeCode = [];
     this.encodeCode = [];

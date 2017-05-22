@@ -33,7 +33,7 @@ export function generateArrayEncoderCode(state, codeGen, type, nullable, size) {
     // If the type is nullable, we have to use separate nullable fields to
     // spare some bits
     u8 = state.resolveType({ name: 'u8' });
-    nullFieldName = 'nullCheck' + (state.namespace._refs++);
+    nullFieldName = 'nullCheck' + (state._refs++);
     codeGen.push(`var ${nullFieldName} = 0;`);
   }
   codeGen.pushDecode(`#value# = new Array(${size});`);
@@ -71,7 +71,7 @@ export default function createArrayEncoder(state, generics) {
   let numType = state.resolveType({ name: 'uvar' });
   let codeGen = new CodeGenerator(state);
   let nullable = generics[0].nullable;
-  let varName = 'arraySize' + (state.namespace._refs++);
+  let varName = 'arraySize' + (state._refs++);
   codeGen.pushTypeDecode(varName, numType, true);
   codeGen.pushEncode(`var ${varName} = #value#.length;`);
   codeGen.pushTypeEncode(varName, numType);

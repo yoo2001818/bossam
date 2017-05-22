@@ -5,9 +5,15 @@ import { generateArrayEncoderCode } from './arrayEncoder';
 
 export default function compile(ast, namespace = createNamespace()) {
   // Create compiler state.
-  let state = { ast, namespace };
-  state.resolveType = resolveType.bind(null, state);
-  state.resolveBlock = resolveBlock.bind(null, state);
+  namespace.resolve = resolveType.bind(null, namespace);
+  namespace.resolveType = resolveType.bind(null, namespace);
+  // Copy each block to namespace's AST.
+  for (let key in ast) {
+    if (namespace.ast[key] != null) {
+      throw new Error(`Compile error: ${key} is already defined`);
+    }
+    namespace.ast[key] = ast[key];
+  }
   // Resolve each block - all blocks will be compiled then.
   // However, if a circular reference occurs, a stack overflow will happen.
   // It can be resolved by sacrificing some functions to resolve other
@@ -15,7 +21,7 @@ export default function compile(ast, namespace = createNamespace()) {
   // But such use case won't happen, so I'll do it someday later.
   // TODO Fix stack overflow.
   for (let key in ast) {
-    resolveBlock(state, key);
+    resolveBlock(namespace, key);
   }
   return namespace;
 }
@@ -27,16 +33,16 @@ export function assert(expected, received) {
   }
 }
 
-function resolveType(state, type, parentGenerics) {
+function resolveType(namespace, type, parentGenerics) {
   let resolvedType = type;
   if (type.generic === true) resolvedType = parentGenerics[type.name];
   // If the type is a tuple, Compile it right away.
   if (resolvedType.inline === true) {
-    return compileStruct(state, resolvedType, parentGenerics);
+    return compileStruct(namespace, resolvedType, parentGenerics);
   }
   // Same for arrays.
   if (resolvedType.array === true) {
-    return compileArray(state, resolvedType, parentGenerics);
+    return compileArray(namespace, resolvedType, parentGenerics);
   }
   if (Array.isArray(resolvedType)) {
     // Namespaces are hard to handle. Nevertheless, we need to implement them
@@ -62,22 +68,19 @@ function resolveType(state, type, parentGenerics) {
         return block;
       } else {
         // Descend...
-        return {
-          // Store 'root' object to use in compiling mode; compilers have to
-          // refer root namespace directly.
+        return Object.assign({}, block.namespace, {
           root: prev.root || prev,
-          namespace: block.namespace,
           ast: prev.ast[astKey],
-        };
+        });
       }
-    }, state);
+    }, namespace);
   }
-  return resolveBlock(state, resolvedType.name,
+  return resolveBlock(namespace, resolvedType.name,
     resolvedType.generics, parentGenerics);
 }
 
-function resolveBlock(state, name, generics, parentGenerics) {
-  const { ast, namespace } = state;
+function resolveBlock(namespace, name, generics, parentGenerics) {
+  const { ast } = namespace;
   let genericsData = generics;
   if (generics != null && parentGenerics != null) {
     genericsData = generics.map(v => v.generic ? parentGenerics[v.name] : v);
@@ -91,7 +94,7 @@ function resolveBlock(state, name, generics, parentGenerics) {
   // If 'generics' is provided and the astBlock is missing, compile against
   // the generics template.
   if (generics != null && astBlock == null) {
-    let template = resolveBlock(state,
+    let template = resolveBlock(namespace,
       getGenericIdentifier({ name }, generics));
     if (template == null) throw new Error(`${key} is not defined`);
     // Swap the astBlock to the template and continue.
@@ -110,16 +113,16 @@ function resolveBlock(state, name, generics, parentGenerics) {
   // If 'generics' is not defined and the block uses generics, return a
   // function that compiles the block using generics.
   if (generics == null && astBlock.generics != null) {
-    namespace[key] = (state, generics, namespace) => {
+    namespace[key] = (namespace, generics, namespaceLow) => {
       // Since the generics variable is already processed by parentGenerics,
       // we can just call compileBlock with correct generics. Done!
-      return compileBlock(state, astBlock, generics, namespace);
+      return compileBlock(namespace, astBlock, generics, namespaceLow);
     };
     namespace[key].ast = astBlock;
     return namespace[key];
   }
   // Otherwise, just compile it!
-  let result = compileBlock(state.root || state, astBlock, genericsData,
+  let result = compileBlock(namespace.root || namespace, astBlock, genericsData,
     namespaceVal);
   if (result.name == null) {
     result.name = key;
@@ -133,40 +136,40 @@ function resolveBlock(state, name, generics, parentGenerics) {
 }
 
 // Assume that everything is compiled at this moment.
-function compileBlock(state, astBlock, generics, namespace) {
+function compileBlock(namespace, astBlock, generics, namespaceLow) {
   if (typeof astBlock === 'function') {
-    return astBlock(state, generics, namespace);
+    return astBlock(namespace, generics, namespace);
   }
   if (astBlock.type === 'struct') {
-    return compileStruct(state, astBlock, generics);
+    return compileStruct(namespace, astBlock, generics);
   }
   if (astBlock.type === 'enum') {
-    return compileEnum(state, astBlock, generics, namespace);
+    return compileEnum(namespace, astBlock, generics, namespaceLow);
   }
   if (astBlock.type === 'alias') {
     if (astBlock.nullable) throw new Error('Alias should not use nullable');
-    return resolveType(state, astBlock.key, generics);
+    return resolveType(namespace, astBlock.key, generics);
   }
   throw new Error('Unknown type ' + astBlock.type);
 }
 
-function compileArray(state, ast, generics) {
+function compileArray(namespace, ast, generics) {
   // Just a downgraded version of Array<T>.
-  let type = resolveType(state, ast.type, generics);
-  let codeGen = new CodeGenerator(state);
+  let type = resolveType(namespace, ast.type, generics);
+  let codeGen = new CodeGenerator(namespace);
   let nullable = ast.type.nullable;
-  generateArrayEncoderCode(state, codeGen, type, nullable, ast.size);
+  generateArrayEncoderCode(namespace, codeGen, type, nullable, ast.size);
   let maxSize = 0;
   maxSize += type.maxSize * ast.size;
   if (nullable) maxSize += Math.ceil(ast.size / 8);
   return codeGen.compile(maxSize);
 }
 
-function compileStruct(state, ast, generics) {
-  let codeGen = new CodeGenerator(state);
+function compileStruct(namespace, ast, generics) {
+  let codeGen = new CodeGenerator(namespace);
   let nullableCount = 0;
-  let nullFieldName = 'nullCheck' + (state.namespace._refs++);
-  let refFieldName = 'ref' + (state.namespace._refs++);
+  let nullFieldName = 'nullCheck' + (namespace._refs++);
+  let refFieldName = 'ref' + (namespace._refs++);
   let refId = 0;
   let refs = {};
   let maxSize = 0;
@@ -185,7 +188,7 @@ function compileStruct(state, ast, generics) {
       let bytePos = (nullableCount / 8) | 0;
       let fieldName = nullFieldName + '_' + bytePos;
       if (nullableCount % 8 === 0) {
-        let u8 = resolveType(state, { name: 'u8' });
+        let u8 = resolveType(namespace, { name: 'u8' });
         codeGen.pushTypeDecode(fieldName, u8, true);
         if (bytePos > 0) {
           codeGen.pushTypeEncode(nullFieldName + '_' + (bytePos - 1), u8);
@@ -202,7 +205,7 @@ function compileStruct(state, ast, generics) {
   function finalizeNullable() {
     if (nullableCount > 0 && (nullableCount % 8) > 0) {
       let bytePos = (nullableCount / 8) | 0;
-      let u8 = resolveType(state, { name: 'u8' });
+      let u8 = resolveType(namespace, { name: 'u8' });
       codeGen.pushTypeEncode(nullFieldName + '_' + bytePos, u8);
       maxSize += 1;
     }
@@ -212,14 +215,14 @@ function compileStruct(state, ast, generics) {
     if (value.jsConst) {
       codeGen.pushDecode(`${refs[key]} = ${JSON.stringify(value.value)};`);
     } else if (value.const) {
-      let type = resolveType(state, value.type, generics);
+      let type = resolveType(namespace, value.type, generics);
       let valueStr = JSON.stringify(value.value);
       codeGen.pushTypeEncode(valueStr, type);
       codeGen.pushTypeDecode('assertValue', type, true);
       // TODO Actually assert the value
       // decodeCode.push(`assert(${valueStr}, ${ref}.decode(dataView));`);
     } else {
-      let type = resolveType(state, value, generics);
+      let type = resolveType(namespace, value, generics);
       maxSize += type.maxSize;
       // If the type is nullable, read a byte to check if the data exists.
       if (value.nullable) {
@@ -296,10 +299,10 @@ function compileStruct(state, ast, generics) {
   return codeGen.compile(maxSize);
 }
 
-function compileEnum(state, ast, generics, namespace) {
+function compileEnum(namespace, ast, generics, namespaceLow) {
   // Create a code generator, then loop for every entry in the entries list,
   // compile them into switch loop.
-  let codeGen = new CodeGenerator(state);
+  let codeGen = new CodeGenerator(namespace);
   let typeRef = JSON.stringify(ast.typeTarget);
   let maxSize = 0;
   let typeMaxSize = 0;
@@ -308,10 +311,13 @@ function compileEnum(state, ast, generics, namespace) {
   // TODO Support nulls? Although it's not necessary at all, but it'd be good
   // if we can support it.
   // Read the type object.
-  let varName = 'enumType' + (state.namespace._refs++);
-  let varOut = 'enumData' + (state.namespace._refs++);
-  let typeType = resolveType(state, ast.typeType, generics);
-  let localState = { root: state, namespace, ast: ast.namespace };
+  let varName = 'enumType' + (namespace._refs++);
+  let varOut = 'enumData' + (namespace._refs++);
+  let typeType = resolveType(namespace, ast.typeType, generics);
+  let localNamespace = Object.assign({}, namespaceLow, {
+    root: namespace,
+    ast: ast.namespace,
+  });
   codeGen.push(`var ${varOut};`);
   codeGen.pushEncode(`${varOut} = #value#;`);
   codeGen.pushTypeDecode(varName, typeType, true);
@@ -322,7 +328,7 @@ function compileEnum(state, ast, generics, namespace) {
   ast.entries.forEach(([key, valueName]) => {
     let keyStr = JSON.stringify(key);
     let valueNameStr = JSON.stringify(valueName);
-    let type = resolveType(localState, { name: valueName }, generics);
+    let type = resolveType(localNamespace, { name: valueName }, generics);
     if (ast.subType === 'array' && type.ast.keys[0] &&
       type.ast.keys[0].jsConst
     ) {
@@ -348,8 +354,8 @@ function compileEnum(state, ast, generics, namespace) {
     // result, then concat with the old array.
     if (ast.subType === 'array' && type.ast.subType === 'empty') {
       // Handle empty structs in an array separately.
-      codeGen.pushType(varOut,
-        compileStruct(state, { type: 'struct', subType: 'array', keys: [] }));
+      codeGen.pushType(varOut, compileStruct(namespace,
+        { type: 'struct', subType: 'array', keys: [] }));
     } else {
       codeGen.pushType(varOut, type);
     }

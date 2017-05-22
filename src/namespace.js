@@ -126,7 +126,7 @@ const builtInNamespace = {
     let type = state.resolveType(generics[0]);
     let size = generics[1].name;
     let codeGen = new CodeGenerator(state);
-    let posVar = 'pos' + (state.namespace._refs++);
+    let posVar = 'pos' + (state._refs++);
     if (generics[0].nullable) {
       // TODO Implement nullable, but maybe it'd be better to forward it?
       throw new Error('Nullable objects are unsupported by Padded<T,S> - ' +
@@ -167,5 +167,8 @@ const builtInNamespace = {
 
 // Creates namespace. So simple :P
 export default function createNamespace() {
-  return Object.create(builtInNamespace);
+  let namespace = Object.create(builtInNamespace);
+  // Create empty AST
+  namespace.ast = {};
+  return namespace;
 }
