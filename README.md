@@ -108,6 +108,10 @@ enum Item(u8, type) {
   Iron { type: "iron" },
   Pickaxe { strength: u8 },
   Axe { rarity: Rarity<u8> },
+  // You can use aliases in the enum.
+  BizCard = User,
+  // You can also point to other types in enums like this.
+  Shovel = Item.Axe,
 }
 
 // Tuple enums are supported too. 0th position of array will be the type and
@@ -121,6 +125,11 @@ enum Rarity<T>(String) {
   "e" => Epic(T),
   "l" => Legendary(T),
 }
+
+// Aliases are also possible.
+struct Hello = Rarity<i32>;
+struct There = Item.Axe;
+
 ```
 
 ### Primitive types
@@ -148,6 +157,8 @@ All types use big endian unless specified.
   "utf-8", "utf-16", "utf-16le", "utf-16be". Other encodings are not supported
   because TextEncoder spec doesn't allow it.
 - Date - Equivalent to u64, but automatically converts from / to Date.
+- Padded&lt;T, S&gt; - Type T padded to size S. If the type is larger than the
+  provided size, it'll throw an error.
 
 ## Resulting byte sizes
 Bossam encodes the data without any metadata or specifier. If you specify 4
