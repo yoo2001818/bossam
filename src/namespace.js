@@ -119,14 +119,14 @@ const builtInNamespace = {
   'Array<_,#>': createArrayEncoder,
   'Vec<_,#>': createArrayEncoder,
   'String': createStringEncoder('utf-8'),
-  'String<#>': (state, generics) => {
+  'String<#>': (namespace, generics) => {
     return createStringEncoder(generics[0].name);
   },
-  'Padded<_,#>': (state, generics) => {
-    let type = state.resolveType(generics[0]);
+  'Padded<_,#>': (namespace, generics) => {
+    let type = namespace.resolveType(generics[0]);
     let size = generics[1].name;
-    let codeGen = new CodeGenerator(state);
-    let posVar = 'pos' + (state._refs++);
+    let codeGen = new CodeGenerator(namespace);
+    let posVar = 'pos' + (namespace._refs++);
     if (generics[0].nullable) {
       // TODO Implement nullable, but maybe it'd be better to forward it?
       throw new Error('Nullable objects are unsupported by Padded<T,S> - ' +

@@ -11,7 +11,7 @@ const TYPED_ARRAY_MAP = {
   f64: 'Float64Array',
 };
 
-export function generateArrayEncoderCode(state, codeGen, type, nullable, size) {
+export function generateArrayEncoderCode(namespace, codeGen, type, nullable, size) {
   let u8, nullFieldName;
   // If the value can be processed using TypedArray, handle it using it.
   if (!nullable && TYPED_ARRAY_MAP[type.name] != null) {
@@ -32,8 +32,8 @@ export function generateArrayEncoderCode(state, codeGen, type, nullable, size) {
   if (nullable) {
     // If the type is nullable, we have to use separate nullable fields to
     // spare some bits
-    u8 = state.resolveType({ name: 'u8' });
-    nullFieldName = 'nullCheck' + (state._refs++);
+    u8 = namespace.resolveType({ name: 'u8' });
+    nullFieldName = 'nullCheck' + (namespace._refs++);
     codeGen.push(`var ${nullFieldName} = 0;`);
   }
   codeGen.pushDecode(`#value# = new Array(${size});`);
@@ -62,20 +62,20 @@ export function generateArrayEncoderCode(state, codeGen, type, nullable, size) {
   codeGen.push('}');
 }
 
-export default function createArrayEncoder(state, generics) {
-  let type = state.resolveType(generics[0]);
+export default function createArrayEncoder(namespace, generics) {
+  let type = namespace.resolveType(generics[0]);
   let maxLength = Infinity;
   if (generics[1] != null && generics[1].const) {
     maxLength = generics[1].name;
   }
-  let numType = state.resolveType({ name: 'uvar' });
-  let codeGen = new CodeGenerator(state);
+  let numType = namespace.resolveType({ name: 'uvar' });
+  let codeGen = new CodeGenerator(namespace);
   let nullable = generics[0].nullable;
-  let varName = 'arraySize' + (state._refs++);
+  let varName = 'arraySize' + (namespace._refs++);
   codeGen.pushTypeDecode(varName, numType, true);
   codeGen.pushEncode(`var ${varName} = #value#.length;`);
   codeGen.pushTypeEncode(varName, numType);
-  generateArrayEncoderCode(state, codeGen, type, nullable, varName);
+  generateArrayEncoderCode(namespace, codeGen, type, nullable, varName);
   // Calculate max size if max length constraint is provided
   let maxSize = Infinity;
   if (maxLength !== Infinity) {
