@@ -371,7 +371,7 @@ function getName(state, generics, define) {
   return data;
 }
 
-export default function parse(tokenizer) {
+function createParser(tokenizer) {
   let state = { next, push, lookahead: [], namespace: {} };
   function next() {
     if (state.lookahead.length > 0) {
@@ -385,8 +385,18 @@ export default function parse(tokenizer) {
   function push(token) {
     state.lookahead.push(token);
   }
+  return state;
+}
+
+export default function parse(tokenizer) {
+  let state = createParser(tokenizer);
   // Read each line and process. Since this uses JS's own stack, it'd be really
   // simple to describe the language.
   main(state);
   return state.namespace;
+}
+
+export function parseKeyword(tokenizer) {
+  let state = createParser(tokenizer);
+  return getName(state);
 }

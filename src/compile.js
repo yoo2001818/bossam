@@ -5,7 +5,6 @@ import { generateArrayEncoderCode } from './arrayEncoder';
 
 export default function compile(ast, namespace = createNamespace()) {
   // Create compiler state.
-  namespace.resolve = resolveType.bind(null, namespace);
   namespace.resolveType = resolveType.bind(null, namespace);
   // Copy each block to namespace's AST.
   for (let key in ast) {
@@ -33,7 +32,7 @@ export function assert(expected, received) {
   }
 }
 
-function resolveType(namespace, type, parentGenerics) {
+export function resolveType(namespace, type, parentGenerics) {
   let resolvedType = type;
   if (type.generic === true) resolvedType = parentGenerics[type.name];
   // If the type is a tuple, Compile it right away.

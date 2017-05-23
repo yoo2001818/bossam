@@ -283,4 +283,22 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('1300');
     expect(Data.decode(buffer)).toEqual({ x: 0x13 });
   });
+  it('should parse types provided as a string', () => {
+    let namespace = compileFromCode(`
+      struct Data {
+        x: i8,
+      };
+      struct Data2<T> {
+        x: T,
+      };
+    `);
+    let Data = namespace.resolve('Data');
+    let buffer = Data.encode({ x: 0x13 });
+    expect(byteArrayToHex(buffer)).toBe('13');
+    expect(Data.decode(buffer)).toEqual({ x: 0x13 });
+    let Data2 = namespace.resolve('Data2<i8>');
+    buffer = Data2.encode({ x: 0x13 });
+    expect(byteArrayToHex(buffer)).toBe('13');
+    expect(Data2.decode(buffer)).toEqual({ x: 0x13 });
+  });
 });
