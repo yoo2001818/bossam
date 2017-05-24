@@ -29,7 +29,11 @@ console.log(namespace.Point.decode(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0])));
 // Expanding existing namespace is possible by using:
 bossam(`
   struct Data(i32, i32);
+  struct DataT<T>(T, T);
 `, namespace);
+// Create generics with the resolve function
+const DataT = namespace.resolve('DataT<i8>');
+console.log(DataT.encode([3, 3]));
 ```
 
 **NOTE: If you're not using Babel, you can import it using**
