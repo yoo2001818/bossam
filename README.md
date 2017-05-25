@@ -223,7 +223,11 @@ you have to include them manually.
 ### MessagePack
 
 ```js
+import compileFromCode, { createNamespace } from 'bossam';
 import createMsgPackEncoder from 'bossam/lib/adapter/msgpack';
 import msgpack from 'msgpack-lite';
+
+const namespace = createNamespace();
 namespace.MsgPack = createMsgPackEncoder(msgpack);
+compileFromCode('struct Test = MsgPack', namespace);
 ```
