@@ -283,6 +283,16 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('1300');
     expect(Data.decode(buffer)).toEqual({ x: 0x13 });
   });
+  it('should encode JSON', () => {
+    let namespace = compileFromCode(`
+      struct Data {
+        x: JSON,
+      };
+    `);
+    let Data = namespace.resolve('Data');
+    let buffer = Data.encode({ x: { hello: 'world' } });
+    expect(Data.decode(buffer)).toEqual({ x: { hello: 'world' } });
+  });
   it('should parse types provided as a string', () => {
     let namespace = compileFromCode(`
       struct Data {

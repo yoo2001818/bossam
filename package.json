@@ -45,5 +45,6 @@
     "eslint-plugin-react": "^6.10.3",
     "eslint-plugin-standard": "^3.0.1",
     "jest": "^19.0.2"
-  }
+  },
+  "optionalDependencies": {}
 }

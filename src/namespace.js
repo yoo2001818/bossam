@@ -158,9 +158,14 @@ const builtInNamespace = {
     codeGen.pushEncodeOnly(`dataView.fill(0, ${size} - ${posVar});`);
     return codeGen.compile(size);
   },
-  'Date': createPrimitive('Date', 8,
+  Date: createPrimitive('Date', 8,
     'namespace.u64.encodeImpl(namespace, #value#.getTime(), dataView)',
     '#value# = new Date(namespace.u64.decodeImpl(namespace, dataView))',
+  ),
+  JSON: createPrimitive('JSON',
+    'namespace.String.size(namespace, JSON.stringify(#value#))',
+    'namespace.String.encodeImpl(namespace, JSON.stringify(#value#), dataView)',
+    '#value# = JSON.parse(namespace.String.decodeImpl(namespace, dataView))',
   ),
   _refs: 0,
 };

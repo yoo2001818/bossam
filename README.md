@@ -161,6 +161,8 @@ All types use big endian unless specified.
   "utf-8", "utf-16", "utf-16le", "utf-16be". Other encodings are not supported
   because TextEncoder spec doesn't allow it.
 - Date - Equivalent to u64, but automatically converts from / to Date.
+- JSON - Equivalent to UTF-8 encoded string, but automatically converts from /
+  to JSON. **This stores JSON as a string!**
 - Padded&lt;T, S&gt; - Type T padded to size S. If the type is larger than the
   provided size, it'll throw an error.
 
@@ -212,3 +214,16 @@ every 8 types.
 
 ### Strings and arrays
 Strings and arrays encode the size info using uvar. 
+
+## Adapters
+Bossam includes 'adapter' code to use certain serialization format libraries
+with Bossam. By default, they're not included in the default namespace -
+you have to include them manually.
+
+### MessagePack
+
+```js
+import createMsgPackEncoder from 'bossam/lib/adapter/msgpack';
+import msgpack from 'msgpack-lite';
+namespace.MsgPack = createMsgPackEncoder(msgpack);
+```
