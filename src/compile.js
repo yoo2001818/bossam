@@ -155,12 +155,14 @@ function compileBlock(namespace, astBlock, generics, namespaceLow) {
 function compileArray(namespace, ast, generics) {
   // Just a downgraded version of Array<T>.
   let type = resolveType(namespace, ast.type, generics);
+  let size = ast.size.value;
+  if (ast.size.generic) size = generics[ast.size.name].name;
   let codeGen = new CodeGenerator(namespace);
   let nullable = ast.type.nullable;
-  generateArrayEncoderCode(namespace, codeGen, type, nullable, ast.size);
+  generateArrayEncoderCode(namespace, codeGen, type, nullable, size);
   let maxSize = 0;
-  maxSize += type.maxSize * ast.size;
-  if (nullable) maxSize += Math.ceil(ast.size / 8);
+  maxSize += type.maxSize * size;
+  if (nullable) maxSize += Math.ceil(size / 8);
   return codeGen.compile(maxSize);
 }
 

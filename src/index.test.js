@@ -100,6 +100,16 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('');
     expect(Data.decode(buffer)).toEqual({});
   });
+  it('should support generics as array length', () => {
+    let { Data } = compileFromCode(`
+      struct Data2<T, S> {
+        a: [T; S],
+      }
+      struct Data = Data2<u8, 3>;
+    `);
+    let buffer = Data.encode({ a: [1, 2, 3] });
+    expect(byteArrayToHex(buffer)).toBe('010203');
+  });
   it('should encode alias structs', () => {
     let { Data } = compileFromCode('struct Data = u8;');
     let buffer = Data.encode(3);

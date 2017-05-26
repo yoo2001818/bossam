@@ -116,13 +116,13 @@ const builtInNamespace = {
   ),
   'Array<_>': createArrayEncoder,
   'Vec<_>': createArrayEncoder,
-  'Array<_,#>': createArrayEncoder,
-  'Vec<_,#>': createArrayEncoder,
+  'Array<_,_>': createArrayEncoder,
+  'Vec<_,_>': createArrayEncoder,
   'String': createStringEncoder('utf-8'),
-  'String<#>': (namespace, generics) => {
+  'String<_>': (namespace, generics) => {
     return createStringEncoder(generics[0].name);
   },
-  'Padded<_,#>': (namespace, generics) => {
+  'Padded<_,_>': (namespace, generics) => {
     let type = namespace.resolveType(generics[0]);
     let size = generics[1].name;
     let codeGen = new CodeGenerator(namespace);

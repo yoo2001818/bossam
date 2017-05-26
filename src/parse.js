@@ -309,7 +309,7 @@ function getType(state, generics) {
       let data = { array: true };
       data.type = getType(state, generics);
       pull(state, 'semicolon');
-      data.size = pull(state, 'number').value;
+      data.size = getType(state, generics);
       pull(state, 'squareClose');
       return data;
     },
