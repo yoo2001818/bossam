@@ -35,6 +35,10 @@ const SYNTAX_TABLE = {
     [/:/g, Token('colon')],
     [/;/g, Token('semicolon')],
     [/\?/g, Token('question')],
+    [/\+/g, Token('plus')],
+    [/-/g, Token('minus')],
+    [/\//g, Token('slash')],
+    [/\*/g, Token('asterisk')],
     [/\s+/g, NoOp],
   ],
   commentBlock: [
