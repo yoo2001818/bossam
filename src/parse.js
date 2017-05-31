@@ -39,6 +39,24 @@ function pullIf(state, type, then) {
   return token;
 }
 
+function peek(state) {
+  let token = state.next();
+  state.unshift(token);
+  return token;
+}
+
+function peekIf(state, type, then) {
+  // Try to match the type
+  let token = peek(state);
+  let tokenType = (token === null ? 'null' : token.type);
+  if (tokenType !== type) {
+    state.unshift(token);
+    return false;
+  }
+  if (then != null) then(state, token);
+  return token;
+}
+
 function main(state) {
   // Loop until we meet null. This looks awkward, but this'll do.
   while (match(state, {
@@ -309,7 +327,7 @@ function getType(state, generics) {
       let data = { array: true };
       data.type = getType(state, generics);
       pull(state, 'semicolon');
-      data.size = getType(state, generics);
+      data.size = getExpression(state, generics);
       pull(state, 'squareClose');
       return data;
     },
@@ -336,26 +354,7 @@ function getName(state, generics, define) {
   pullIf(state, 'angleOpen', (state) => {
     data.generics = [];
     function next() {
-      match(state, {
-        else: (state, token) => {
-          if (define) {
-            // If in define mode, use a single keyword.
-            state.push(token);
-            data.generics.push(pull(state, 'keyword').name);
-          } else {
-            state.push(token);
-            data.generics.push(getType(state, generics));
-          }
-        },
-        // These two are absurd, however, it is required to specify string's
-        // encoding and size.
-        string: (state, token) => {
-          data.generics.push({ const: true, name: token.value });
-        },
-        number: (state, token) => {
-          data.generics.push({ const: true, name: token.value });
-        },
-      });
+      data.generics.push(getExpression(state, generics));
       // Continue to next if comma is provided
       pullIf(state, 'comma', next);
     }
@@ -371,8 +370,47 @@ function getName(state, generics, define) {
   return data;
 }
 
+function getExpression(state, generics) {
+  // TODO Wouldn't it be better to move these into standalone functions?
+  function addExpr() {
+  }
+  function mulExpr() {
+
+  }
+  function funcExpr() {
+
+  }
+  function funcArgs() {
+
+  }
+  function value() {
+
+  }
+  // return addExpr();
+  return match(state, {
+    else: (state, token) => {
+      if (define) {
+        // If in define mode, use a single keyword.
+        state.push(token);
+        data.generics.push(pull(state, 'keyword').name);
+      } else {
+        state.push(token);
+        data.generics.push(getType(state, generics));
+      }
+    },
+    // These two are absurd, however, it is required to specify string's
+    // encoding and size.
+    string: (state, token) => {
+      data.generics.push({ const: true, name: token.value });
+    },
+    number: (state, token) => {
+      data.generics.push({ const: true, name: token.value });
+    },
+  });
+}
+
 function createParser(tokenizer) {
-  let state = { next, push, lookahead: [], namespace: {} };
+  let state = { next, push, unshift, lookahead: [], namespace: {} };
   function next() {
     if (state.lookahead.length > 0) {
       return state.lookahead.shift();
@@ -384,6 +422,9 @@ function createParser(tokenizer) {
   // Lookahead support
   function push(token) {
     state.lookahead.push(token);
+  }
+  function unshift(token) {
+    state.lookahead.unshift(token);
   }
   return state;
 }
