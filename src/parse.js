@@ -49,10 +49,7 @@ function peekIf(state, type, then) {
   // Try to match the type
   let token = peek(state);
   let tokenType = (token === null ? 'null' : token.type);
-  if (tokenType !== type) {
-    state.unshift(token);
-    return false;
-  }
+  if (tokenType !== type) return false;
   if (then != null) then(state, token);
   return token;
 }
@@ -354,7 +351,11 @@ function getName(state, generics, define) {
   pullIf(state, 'angleOpen', (state) => {
     data.generics = [];
     function next() {
-      data.generics.push(getExpression(state, generics));
+      if (define) {
+        data.generics.push(pull(state, 'keyword').name);
+      } else {
+        data.generics.push(getExpression(state, generics));
+      }
       // Continue to next if comma is provided
       pullIf(state, 'comma', next);
     }
@@ -373,40 +374,71 @@ function getName(state, generics, define) {
 function getExpression(state, generics) {
   // TODO Wouldn't it be better to move these into standalone functions?
   function addExpr() {
+    let buffer = null;
+    do {
+      if (buffer != null) {
+        let op = Object.assign({ op: true }, state.next());
+        let right = mulExpr();
+        buffer = [].concat(buffer, right, op);
+      } else {
+        buffer = mulExpr();
+      }
+    } while (peekIf(state, ['plus', 'minus']));
   }
   function mulExpr() {
-
+    let buffer = null;
+    do {
+      if (buffer != null) {
+        let op = Object.assign({ op: true }, state.next());
+        let right = funcExpr();
+        buffer = [].concat(buffer, right, op);
+      } else {
+        buffer = funcExpr();
+      }
+    } while (peekIf(state, ['asterisk', 'slash']));
   }
   function funcExpr() {
-
+    if (peekIf(state, 'keyword')) {
+      let keyword = Object.assign({ op: true }, state.next());
+      pull(state, 'parenOpen');
+      let args = funcArgs();
+      return args.concat(keyword);
+    } else if (pullIf(state, 'parenOpen')) {
+      let output = addExpr();
+      pull(state, 'parenClose');
+      return output;
+    } else {
+      return value();
+    }
   }
   function funcArgs() {
-
+    let buffer = null;
+    do {
+      if (buffer != null) {
+        let right = addExpr();
+        buffer = [].concat(buffer, right);
+      } else {
+        buffer = funcExpr();
+      }
+    } while (pullIf(state, 'comma'));
+    pull(state, 'parenClose');
+    return buffer;
   }
   function value() {
-
+    return [match(state, {
+      else: (state, token) => {
+        state.push(token);
+        return getType(state, generics);
+      },
+      string: (state, token) => {
+        return { const: true, value: token.value };
+      },
+      number: (state, token) => {
+        return { const: true, value: token.value };
+      },
+    })];
   }
-  // return addExpr();
-  return match(state, {
-    else: (state, token) => {
-      if (define) {
-        // If in define mode, use a single keyword.
-        state.push(token);
-        data.generics.push(pull(state, 'keyword').name);
-      } else {
-        state.push(token);
-        data.generics.push(getType(state, generics));
-      }
-    },
-    // These two are absurd, however, it is required to specify string's
-    // encoding and size.
-    string: (state, token) => {
-      data.generics.push({ const: true, name: token.value });
-    },
-    number: (state, token) => {
-      data.generics.push({ const: true, name: token.value });
-    },
-  });
+  return addExpr();
 }
 
 function createParser(tokenizer) {
