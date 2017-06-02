@@ -435,7 +435,7 @@ function getExpression(state, generics) {
     return [match(state, {
       else: (state, token) => {
         state.push(token);
-        return getType(state, generics);
+        return Object.assign({ type: true }, getType(state, generics));
       },
       string: (state, token) => {
         return { const: true, value: token.value };
@@ -446,7 +446,6 @@ function getExpression(state, generics) {
     })];
   }
   let result = addExpr();
-  console.log(result);
   return result;
 }
 

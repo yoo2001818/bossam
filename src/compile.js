@@ -32,6 +32,22 @@ export function assert(expected, received) {
   }
 }
 
+export function resolveExpression(operands) {
+  let stack = [];
+  operands.forEach(op => {
+    if (op.type) {
+      stack.push(op);
+    } else if (op.const) {
+      stack.push(op);
+    } else {
+      // TODO
+    }
+  });
+  let result = stack.pop();
+  if (result.const) return { jsConst: true, name: result.value };
+  return result;
+}
+
 export function resolveType(namespace, type, parentGenerics) {
   let resolvedType = type;
   if (type.generic === true) resolvedType = parentGenerics[type.name];
@@ -58,10 +74,14 @@ export function resolveType(namespace, type, parentGenerics) {
       if (typeVal.generic === true) {
         resolvedTypeVal = parentGenerics[typeVal.name];
       }
+      let generics;
+      if (resolvedTypeVal.generics != null) {
+        generics = resolvedTypeVal.generics.map(resolveExpression);
+      }
       let astKey = getGenericIdentifier({ name: resolvedTypeVal.name },
-        resolvedTypeVal.generics);
+        generics);
       let block = resolveBlock(prev, resolvedTypeVal.name,
-        resolvedTypeVal.generics, parentGenerics);
+        generics, parentGenerics);
       if (i === resolvedType.length - 1) {
         // Done! Directly return the block.
         return block;
@@ -74,8 +94,12 @@ export function resolveType(namespace, type, parentGenerics) {
       }
     }, namespace);
   }
+  let generics;
+  if (resolvedType.generics != null) {
+    generics = resolvedType.generics.map(resolveExpression);
+  }
   return resolveBlock(namespace, resolvedType.name,
-    resolvedType.generics, parentGenerics);
+    generics, parentGenerics);
 }
 
 function resolveBlock(namespace, name, generics, parentGenerics) {
