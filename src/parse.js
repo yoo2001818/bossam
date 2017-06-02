@@ -31,7 +31,7 @@ function pullIf(state, type, then) {
   // Try to match the type
   let token = state.next();
   let tokenType = (token === null ? 'null' : token.type);
-  if (tokenType !== type) {
+  if (Array.isArray(type) ? !type.includes(tokenType) : tokenType !== type) {
     state.push(token);
     return false;
   }
@@ -49,7 +49,9 @@ function peekIf(state, type, then) {
   // Try to match the type
   let token = peek(state);
   let tokenType = (token === null ? 'null' : token.type);
-  if (tokenType !== type) return false;
+  if (Array.isArray(type) ? !type.includes(tokenType) : tokenType !== type) {
+    return false;
+  }
   if (then != null) then(state, token);
   return token;
 }
