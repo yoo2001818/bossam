@@ -41,7 +41,7 @@ function pullIf(state, type, then) {
 
 function peek(state) {
   let token = state.next();
-  state.unshift(token);
+  state.push(token);
   return token;
 }
 
@@ -384,6 +384,7 @@ function getExpression(state, generics) {
         buffer = mulExpr();
       }
     } while (peekIf(state, ['plus', 'minus']));
+    return buffer;
   }
   function mulExpr() {
     let buffer = null;
@@ -396,13 +397,19 @@ function getExpression(state, generics) {
         buffer = funcExpr();
       }
     } while (peekIf(state, ['asterisk', 'slash']));
+    return buffer;
   }
   function funcExpr() {
     if (peekIf(state, 'keyword')) {
-      let keyword = Object.assign({ op: true }, state.next());
-      pull(state, 'parenOpen');
+      let keyword = state.next();
+      let paren = pullIf(state, 'parenOpen');
+      if (paren === false) {
+        // Put the value back to buffer; parse it as a value.
+        state.push(keyword);
+        return value();
+      }
       let args = funcArgs();
-      return args.concat(keyword);
+      return args.concat(Object.assign({ op: true }, keyword));
     } else if (pullIf(state, 'parenOpen')) {
       let output = addExpr();
       pull(state, 'parenClose');
@@ -418,7 +425,7 @@ function getExpression(state, generics) {
         let right = addExpr();
         buffer = [].concat(buffer, right);
       } else {
-        buffer = funcExpr();
+        buffer = addExpr();
       }
     } while (pullIf(state, 'comma'));
     pull(state, 'parenClose');
@@ -438,14 +445,16 @@ function getExpression(state, generics) {
       },
     })];
   }
-  return addExpr();
+  let result = addExpr();
+  console.log(result);
+  return result;
 }
 
 function createParser(tokenizer) {
   let state = { next, push, unshift, lookahead: [], namespace: {} };
   function next() {
     if (state.lookahead.length > 0) {
-      return state.lookahead.shift();
+      return state.lookahead.pop();
     }
     const { value, done } = tokenizer.next();
     if (done) return null;
