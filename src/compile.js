@@ -32,11 +32,15 @@ export function assert(expected, received) {
   }
 }
 
-export function resolveExpression(operands) {
+export function resolveExpression(operands, generics) {
   let stack = [];
   operands.forEach(op => {
     if (op.type) {
-      stack.push(op);
+      if (op.generic) {
+        stack.push(generics[op.name]);
+      } else {
+        stack.push(op);
+      }
     } else if (op.const) {
       stack.push(op);
     } else {
@@ -179,8 +183,8 @@ function compileBlock(namespace, astBlock, generics, namespaceLow) {
 function compileArray(namespace, ast, generics) {
   // Just a downgraded version of Array<T>.
   let type = resolveType(namespace, ast.type, generics);
-  let size = ast.size.value;
-  if (ast.size.generic) size = generics[ast.size.name].name;
+  let size = resolveExpression(ast.size, generics).name;
+  // if (ast.size.generic) size = generics[ast.size.name].name;
   let codeGen = new CodeGenerator(namespace);
   let nullable = ast.type.nullable;
   generateArrayEncoderCode(namespace, codeGen, type, nullable, size);
