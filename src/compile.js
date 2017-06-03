@@ -80,7 +80,8 @@ export function resolveType(namespace, type, parentGenerics) {
       }
       let generics;
       if (resolvedTypeVal.generics != null) {
-        generics = resolvedTypeVal.generics.map(resolveExpression);
+        generics = resolvedTypeVal.generics.map(
+          op => resolveExpression(op, parentGenerics));
       }
       let astKey = getGenericIdentifier({ name: resolvedTypeVal.name },
         generics);
@@ -100,7 +101,8 @@ export function resolveType(namespace, type, parentGenerics) {
   }
   let generics;
   if (resolvedType.generics != null) {
-    generics = resolvedType.generics.map(resolveExpression);
+    generics = resolvedType.generics.map(
+      op => resolveExpression(op, parentGenerics));
   }
   return resolveBlock(namespace, resolvedType.name,
     generics, parentGenerics);
