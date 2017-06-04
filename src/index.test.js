@@ -124,11 +124,12 @@ describe('compileFromCode', () => {
     let { Data } = compileFromCode(`
       struct Data2<T, S> {
         a: [T; floor(S / sizeof(T))],
+        b: u16,
       }
       struct Data = Data2<u16, 7>;
     `);
-    let buffer = Data.encode({ a: [1, 2, 3] });
-    expect(byteArrayToHex(buffer)).toBe('000100020003');
+    let buffer = Data.encode({ a: [1, 2, 3], b: 4 });
+    expect(byteArrayToHex(buffer)).toBe('0001000200030004');
   });
   it('should encode alias structs', () => {
     let { Data } = compileFromCode('struct Data = u8;');
@@ -283,6 +284,17 @@ describe('compileFromCode', () => {
       u16: new Uint16Array(data.u16),
       f32: new Float32Array(data.f32),
     });
+  });
+  it('should use big endian for f32', () => {
+    let { Point } = compileFromCode(`
+      struct Point = [f32; 2];
+    `);
+    let buffer = Point.encode([3.14, -5.28]);
+    // Since I have no idea how IEEE 754 is laid out, so I just used
+    // https://www.h-schmidt.net/FloatConverter/IEEE754.html to convert
+    // the numbers into bytes
+    expect(byteArrayToHex(buffer)).toBe('4048f5c3c0a8f5c3');
+    expect(Point.decode(buffer)).toEqual(new Float32Array([3.14, -5.28]));
   });
   it('should encode Padded correctly', () => {
     let { Data, Data3 } = compileFromCode(`

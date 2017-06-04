@@ -1,14 +1,14 @@
 import CodeGenerator from './codeGenerator';
 
 const TYPED_ARRAY_MAP = {
-  u8: 'Uint8Array',
-  i8: 'Int8Array',
-  u16: 'Uint16Array',
-  i16: 'Int16Array',
-  u32: 'Uint32Array',
-  i32: 'Int32Array',
-  f32: 'Float32Array',
-  f64: 'Float64Array',
+  u8: 'Uint8ArrayBE',
+  i8: 'Int8ArrayBE',
+  u16: 'Uint16ArrayBE',
+  i16: 'Int16ArrayBE',
+  u32: 'Uint32ArrayBE',
+  i32: 'Int32ArrayBE',
+  f32: 'Float32ArrayBE',
+  f64: 'Float64ArrayBE',
 };
 
 export function generateArrayEncoderCode(namespace, codeGen, type, nullable, size) {

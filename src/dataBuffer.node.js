@@ -30,7 +30,7 @@ export default class DataBuffer {
     this.position += size;
     return output;
   }
-  setUint8Array(array) {
+  setUint8ArrayBE(array) {
     let source;
     if (array instanceof Buffer) {
       source = array;
@@ -41,7 +41,7 @@ export default class DataBuffer {
     source.copy(this.buffer, this.position);
     this.position += size;
   }
-  getUint8Array(size, buffer) {
+  getUint8ArrayBE(size, buffer) {
     const output = this.buffer.slice(this.position, this.position + size);
     this.position += size;
     if (buffer != null) {
@@ -53,10 +53,71 @@ export default class DataBuffer {
     }
     return output;
   }
+  setUint8ArrayLE(array) {
+    return this.setUint8ArrayBE(array);
+  }
+  getUint8ArrayLE(size, buffer) {
+    return this.getUint8ArrayBE(size, buffer);
+  }
   fill(value, bytes) {
     this.buffer.fill(value, this.position, this.position + bytes);
     this.position += bytes;
   }
+}
+
+// Creates array encoder following system's native endian.
+function createArrayNativeEncoder(type, bytes) {
+  const getter = new Function('size', 'buffer', `
+    var pos = this.position + this.buffer.byteOffset;
+    var output;
+    if (pos % ${bytes} === 0) {
+      output = new ${type}Array(this.buffer.buffer, pos,
+      size / ${bytes});
+    } else {
+      output = new ${type}Array(this.buffer.buffer.slice(
+        pos, pos + size), 0);
+    }
+    this.position += size;
+    if (buffer != null) {
+      if (buffer.length > size / ${bytes}) {
+        throw new Error('Buffer size is smaller than requested size');
+      }
+      buffer.set(output);
+      return buffer;
+    }
+    return output;
+  `);
+  // It may look weird because the arguments order is different from getter,
+  // but it's alright because 'size' is optional in setter, and 'buffer' is
+  // optional in getter.
+
+  // Because buffer can be a regular array, or typed array of other type,
+  // byteLength should be avoided - instead, TypedArray.BYTES_PER_ELEMENT
+  // should be used.
+  // If the buffer array size exceeds provided size, it should throw an error.
+  const setter = new Function('buffer', 'size', `
+    var pos = this.position + this.buffer.byteOffset;
+    var bufferSize = ${bytes} * buffer.length;
+    var maxSize = size == null ? bufferSize : size;
+    if (this.position % ${bytes} === 0) {
+      var output = new ${type}Array(this.buffer.buffer, pos, maxSize);
+      output.set(buffer);
+      output.fill(0, buffer.length);
+    } else {
+      var src;
+      if (buffer instanceof ${type}Array) {
+        src = new Uint8Array(buffer.buffer, buffer.byteOffset,
+          buffer.byteLength);
+      } else {
+        src = new Uint8Array(new ${type}Array(buffer).buffer, 0);
+      }
+      var output = new Uint8Array(this.buffer.buffer, pos, maxSize);
+      output.set(src);
+      output.fill(0, bufferSize);
+    }
+    this.position += maxSize;
+  `);
+  return { getter, setter };
 }
 
 // Implement each accessor function. Since copy & paste is not preferred,
@@ -102,60 +163,101 @@ export default class DataBuffer {
   DataBuffer.prototype[setterLEName] = setterLE;
 
   // Create array accessors
-  const getterArrayName = 'get' + type + 'Array';
-  const setterArrayName = 'set' + type + 'Array';
-  if (DataBuffer.prototype[getterArrayName] == null) {
-    const getterArray = new Function('size', 'buffer', `
-      var pos = this.position + this.buffer.byteOffset;
-      var output;
-      if (pos % ${bytes} === 0) {
-        output = new ${type}Array(this.buffer.buffer, pos,
-        size / ${bytes});
-      } else {
-        output = new ${type}Array(this.buffer.buffer.slice(
-          pos, pos + size), 0);
-      }
-      this.position += size;
-      if (buffer != null) {
-        if (buffer.length > size) {
-          throw new Error('Buffer size is smaller than requested size');
-        }
-        buffer.set(output);
-        return buffer;
-      }
-      return output;
-    `);
-    // It may look weird because the arguments order is different from getter,
-    // but it's alright because 'size' is optional in setter, and 'buffer' is
-    // optional in getter.
-
-    // Because buffer can be a regular array, or typed array of other type,
-    // byteLength should be avoided - instead, TypedArray.BYTES_PER_ELEMENT
-    // should be used.
-    // If the buffer array size exceeds provided size, it should throw an error.
-    const setterArray = new Function('buffer', 'size', `
-      var pos = this.position + this.buffer.byteOffset;
-      var bufferSize = ${bytes} * buffer.length;
-      var maxSize = size == null ? bufferSize : size;
-      if (this.position % ${bytes} === 0) {
-        var output = new ${type}Array(this.buffer.buffer, pos, maxSize);
-        output.set(buffer);
-        output.fill(0, buffer.length);
-      } else {
-        var src;
-        if (buffer instanceof ${type}Array) {
-          src = new Uint8Array(buffer.buffer, buffer.byteOffset,
-            buffer.byteLength);
+  const getterLEArrayName = 'get' + type + 'ArrayLE';
+  const setterLEArrayName = 'set' + type + 'ArrayLE';
+  const getterBEArrayName = 'get' + type + 'ArrayBE';
+  const setterBEArrayName = 'set' + type + 'ArrayBE';
+  if (DataBuffer.prototype[getterLEArrayName] == null) {
+    // Check endianness of the computer: The typed array view types operate
+    // with the endianness of the host computer. :(
+    // Modern computers doesn't use middle endian at all - it can be simply
+    // ignored.
+    let a = new Uint16Array([0x1234]);
+    let b = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+    let isBigEndian = (b[0] === 0x12);
+    if (isBigEndian) {
+      // Most systems don't use big endian, however we have to make sure that
+      // all systems are compatiable
+      let nativeEncoder = createArrayNativeEncoder(type, bytes, nodeType);
+      DataBuffer.prototype[getterBEArrayName] = nativeEncoder.getter;
+      DataBuffer.prototype[setterBEArrayName] = nativeEncoder.setter;
+      // And hand-crafted little endian encoder.
+      const getter = new Function('size', 'buffer', `
+        var output;
+        if (buffer != null) {
+          output = buffer;
+          if (buffer.length > size / ${bytes}) {
+            throw new Error('Buffer size is smaller than requested size');
+          }
         } else {
-          src = new Uint8Array(new ${type}Array(buffer).buffer, 0);
+          output = new ${type}Array(size / ${bytes});
         }
-        var output = new Uint8Array(this.buffer.buffer, pos, maxSize);
-        output.set(src);
-        output.fill(0, bufferSize);
-      }
-      this.position += maxSize;
-    `);
-    DataBuffer.prototype[getterArrayName] = getterArray;
-    DataBuffer.prototype[setterArrayName] = setterArray;
+        for (var i = 0; i < size / ${bytes}; ++i) {
+          output[i] = this.buffer.read${name}${le}(this.position + i * ${bytes},
+            true);
+        }
+        this.position += size;
+        return output;
+      `);
+      // It may look weird because the arguments order is different from getter,
+      // but it's alright because 'size' is optional in setter, and 'buffer' is
+      // optional in getter.
+      const setter = new Function('buffer', 'size', `
+        var maxSize = size == null ? buffer.length : size / ${bytes};
+        var minSize = Math.min(maxSize, buffer.length);
+        for (var i = 0; i < minSize; ++i) {
+          this.buffer.write${name}${le}(buffer[i], this.position + i * ${bytes},
+            true);
+        }
+        if (maxSize !== minSize) {
+          this.buffer.fill(0, this.position + minSize * ${bytes},
+            this.position + maxSize * ${bytes});
+        }
+        this.position += maxSize * ${bytes};
+      `);
+      DataBuffer.prototype[getterLEArrayName] = getter;
+      DataBuffer.prototype[setterLEArrayName] = setter;
+    } else {
+      // Little endian.
+      let nativeEncoder = createArrayNativeEncoder(type, bytes, nodeType);
+      DataBuffer.prototype[getterLEArrayName] = nativeEncoder.getter;
+      DataBuffer.prototype[setterLEArrayName] = nativeEncoder.setter;
+      // And hand-crafted big endian encoder.
+      const getter = new Function('size', 'buffer', `
+        var output;
+        if (buffer != null) {
+          output = buffer;
+          if (buffer.length > size / ${bytes}) {
+            throw new Error('Buffer size is smaller than requested size');
+          }
+        } else {
+          output = new ${type}Array(size / ${bytes});
+        }
+        for (var i = 0; i < size / ${bytes}; ++i) {
+          output[i] = this.buffer.read${name}${be}(this.position + i * ${bytes},
+            true);
+        }
+        this.position += size;
+        return output;
+      `);
+      // It may look weird because the arguments order is different from getter,
+      // but it's alright because 'size' is optional in setter, and 'buffer' is
+      // optional in getter.
+      const setter = new Function('buffer', 'size', `
+        var maxSize = size == null ? buffer.length : size / ${bytes};
+        var minSize = Math.min(maxSize, buffer.length);
+        for (var i = 0; i < minSize; ++i) {
+          this.buffer.write${name}${be}(buffer[i], this.position + i * ${bytes},
+            true);
+        }
+        if (maxSize !== minSize) {
+          this.buffer.fill(0, this.position + minSize * ${bytes},
+            this.position + maxSize * ${bytes});
+        }
+        this.position += maxSize * ${bytes};
+      `);
+      DataBuffer.prototype[getterBEArrayName] = getter;
+      DataBuffer.prototype[setterBEArrayName] = setter;
+    }
   }
 });
