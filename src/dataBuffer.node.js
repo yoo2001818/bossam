@@ -176,22 +176,22 @@ function createArrayEndianEncoder(type, bytes, name, endian) {
   ['Uint16', 2, 'UInt16'],
   ['Uint32', 4, 'UInt32'],
 ].forEach(([type, bytes, nodeType]) => {
-  const getterName = 'get' + type;
-  const setterName = 'set' + type;
   const name = nodeType || type;
   const be = bytes === 1 ? '' : 'BE';
   const le = bytes === 1 ? '' : 'LE';
-  const getter = new Function(`
+  const getterBEName = 'get' + type + 'BE';
+  const setterBEName = 'set' + type + 'BE';
+  const getterBE = new Function(`
     var result = this.buffer.read${name}${be}(this.position, true);
     this.position += ${bytes};
     return result;
   `);
-  const setter = new Function('value', `
+  const setterBE = new Function('value', `
     this.buffer.write${name}${be}(value, this.position, true);
     this.position += ${bytes};
   `);
-  DataBuffer.prototype[getterName] = getter;
-  DataBuffer.prototype[setterName] = setter;
+  DataBuffer.prototype[getterBEName] = getterBE;
+  DataBuffer.prototype[setterBEName] = setterBE;
   const getterLEName = 'get' + type + 'LE';
   const setterLEName = 'set' + type + 'LE';
   const getterLE = new Function(`

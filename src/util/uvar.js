@@ -14,7 +14,7 @@ export function getUintSize(value) {
 }
 
 export function getUintVar(dataBuffer) {
-  let firstByte = dataBuffer.getUint8();
+  let firstByte = dataBuffer.getUint8BE();
   let sizeByte = firstByte;
   let size = 1;
   while (size <= 5) {
@@ -32,15 +32,15 @@ export function getUintVar(dataBuffer) {
   }
   while (remainingSize >= 4) {
     remainingSize -= 4;
-    output |= dataBuffer.getUint32() << (remainingSize << 3);
+    output |= dataBuffer.getUint32BE() << (remainingSize << 3);
   }
   if (remainingSize >= 2) {
     remainingSize -= 2;
-    output |= dataBuffer.getUint16() << (remainingSize << 3);
+    output |= dataBuffer.getUint16BE() << (remainingSize << 3);
   }
   if (remainingSize >= 1) {
     remainingSize -= 1;
-    output |= dataBuffer.getUint8() << (remainingSize << 3);
+    output |= dataBuffer.getUint8BE() << (remainingSize << 3);
   }
   return output;
 }
@@ -53,20 +53,20 @@ export function setUintVar(value, dataBuffer) {
   let remainingSize = size - 1;
   // Handle 32bit specially :/
   if (remainingSize < 4) {
-    dataBuffer.setUint8((value >>> (remainingSize << 3)) | sizeByte);
+    dataBuffer.setUint8BE((value >>> (remainingSize << 3)) | sizeByte);
   } else {
-    dataBuffer.setUint8(sizeByte);
+    dataBuffer.setUint8BE(sizeByte);
   }
   while (remainingSize >= 4) {
     remainingSize -= 4;
-    dataBuffer.setUint32(value >>> (remainingSize << 3));
+    dataBuffer.setUint32BE(value >>> (remainingSize << 3));
   }
   if (remainingSize >= 2) {
     remainingSize -= 2;
-    dataBuffer.setUint16((value >>> (remainingSize << 3)) & 0xFFFF);
+    dataBuffer.setUint16BE((value >>> (remainingSize << 3)) & 0xFFFF);
   }
   if (remainingSize >= 1) {
     remainingSize -= 1;
-    dataBuffer.setUint8((value >>> (remainingSize << 3)) & 0xFF);
+    dataBuffer.setUint8BE((value >>> (remainingSize << 3)) & 0xFF);
   }
 }

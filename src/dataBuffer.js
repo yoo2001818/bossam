@@ -28,62 +28,20 @@ export default class DataBuffer {
   }
 }
 
-// Implement each accessor function. Since copy & paste is not preferred,
-// I decided to alter prototypes to create functions dynamically.
-[
-  ['Float32', 4],
-  ['Float64', 8],
-  ['Int8', 1],
-  ['Int16', 2],
-  ['Int32', 4],
-  ['Uint8', 1],
-  ['Uint16', 2],
-  ['Uint32', 4],
-].forEach(([type, bytes]) => {
-  const getterName = 'get' + type;
-  const setterName = 'set' + type;
-  const getter = new Function(`
-    var result = this.dataView.${getterName}(this.position);
-    this.position += ${bytes};
-    return result;
-  `);
-  const setter = new Function('value', `
-    this.dataView.${setterName}(this.position, value);
-    this.position += ${bytes};
-  `);
-  DataBuffer.prototype[getterName] = getter;
-  DataBuffer.prototype[setterName] = setter;
-  const getterLEName = 'get' + type + 'LE';
-  const setterLEName = 'set' + type + 'LE';
-  const getterLE = new Function(`
-    var result = this.dataView.${getterName}(this.position, true);
-    this.position += ${bytes};
-    return result;
-  `);
-  const setterLE = new Function('value', `
-    this.dataView.${setterName}(this.position, value, true);
-    this.position += ${bytes};
-  `);
-  DataBuffer.prototype[getterLEName] = getterLE;
-  DataBuffer.prototype[setterLEName] = setterLE;
-
-  // Create array accessors
-  const getterArrayName = 'get' + type + 'Array';
-  const setterArrayName = 'set' + type + 'Array';
-  // If the array is aligned, it can directly use TypedArray - but if it
-  // doesn't, we have to create intermediate array.
-  const getterArray = new Function('size', 'buffer', `
+// Creates array encoder following system's native endian.
+function createArrayNativeEncoder(type, bytes) {
+  const getter = new Function('size', 'buffer', `
     var output;
     if (this.position % ${bytes} === 0) {
       output = new ${type}Array(this.dataView.buffer, this.position,
-      size / ${bytes});
+        size / ${bytes});
     } else {
-      output = new ${type}Array(this.dataView.buffer.slice(
-        this.position, this.position + size), 0);
+      output = new ${type}Array(this.dataView.buffer.slice(this.position,
+        this.position + size), 0);
     }
     this.position += size;
     if (buffer != null) {
-      if (buffer.length > size) {
+      if (buffer.length > size / ${bytes}) {
         throw new Error('Buffer size is smaller than requested size');
       }
       buffer.set(output);
@@ -99,9 +57,7 @@ export default class DataBuffer {
   // byteLength should be avoided - instead, TypedArray.BYTES_PER_ELEMENT
   // should be used.
   // If the buffer array size exceeds provided size, it should throw an error.
-  // If the array is aligned, it can directly use TypedArray - but if it
-  // doesn't, we have to create intermediate array.
-  const setterArray = new Function('buffer', 'size', `
+  const setter = new Function('buffer', 'size', `
     var bufferSize = ${bytes} * buffer.length;
     var maxSize = size == null ? bufferSize : size;
     if (this.position % ${bytes} === 0) {
@@ -117,13 +73,134 @@ export default class DataBuffer {
       } else {
         src = new Uint8Array(new ${type}Array(buffer).buffer, 0);
       }
-      var output = new Uint8Array(this.dataView.buffer, this.position,
-        maxSize);
+      var output = new Uint8Array(this.dataView.buffer, this.position, maxSize);
       output.set(src);
       output.fill(0, bufferSize);
     }
     this.position += maxSize;
   `);
-  DataBuffer.prototype[getterArrayName] = getterArray;
-  DataBuffer.prototype[setterArrayName] = setterArray;
+  return { getter, setter };
+}
+
+// Creates unoptimized array encoder with custom endian.
+// endian: true if little endian, following DataView spec.
+function createArrayEndianEncoder(type, bytes, endian) {
+  const getter = new Function('size', 'buffer', `
+    var sizeCount = size / ${bytes};
+    var output;
+    if (buffer != null) {
+      output = buffer;
+      if (buffer.length > sizeCount) {
+        throw new Error('Buffer size is smaller than requested size');
+      }
+    } else {
+      output = new ${type}Array(sizeCount);
+    }
+    for (var i = 0; i < sizeCount; ++i) {
+      output[i] = this.dataView.get${type}(this.position +
+        i * ${bytes}, ${endian});
+    }
+    this.position += size;
+    return output;
+  `);
+  // It may look weird because the arguments order is different from getter,
+  // but it's alright because 'size' is optional in setter, and 'buffer' is
+  // optional in getter.
+  const setter = new Function('buffer', 'size', `
+    var maxSize = size == null ? buffer.length : size / ${bytes};
+    var minSize = Math.min(maxSize, buffer.length);
+    for (var i = 0; i < minSize; ++i) {
+      this.dataView.set${type}(this.position + i * ${bytes},
+        buffer[i], ${endian});
+    }
+    if (maxSize !== minSize) {
+      this.buffer.fill(0, this.position + minSize * ${bytes},
+        this.position + maxSize * ${bytes});
+    }
+    this.position += maxSize * ${bytes};
+  `);
+  return { getter, setter };
+}
+
+// Implement each accessor function. Since copy & paste is not preferred,
+// I decided to alter prototypes to create functions dynamically.
+[
+  ['Float32', 4],
+  ['Float64', 8],
+  ['Int8', 1],
+  ['Int16', 2],
+  ['Int32', 4],
+  ['Uint8', 1],
+  ['Uint16', 2],
+  ['Uint32', 4],
+].forEach(([type, bytes]) => {
+  const getterName = 'get' + type;
+  const setterName = 'set' + type;
+  const getterBEName = 'get' + type + 'BE';
+  const setterBEName = 'set' + type + 'BE';
+  const getterBE = new Function(`
+    var result = this.dataView.${getterName}(this.position);
+    this.position += ${bytes};
+    return result;
+  `);
+  const setterBE = new Function('value', `
+    this.dataView.${setterName}(this.position, value);
+    this.position += ${bytes};
+  `);
+  DataBuffer.prototype[getterBEName] = getterBE;
+  DataBuffer.prototype[setterBEName] = setterBE;
+  const getterLEName = 'get' + type + 'LE';
+  const setterLEName = 'set' + type + 'LE';
+  const getterLE = new Function(`
+    var result = this.dataView.${getterName}(this.position, true);
+    this.position += ${bytes};
+    return result;
+  `);
+  const setterLE = new Function('value', `
+    this.dataView.${setterName}(this.position, value, true);
+    this.position += ${bytes};
+  `);
+  DataBuffer.prototype[getterLEName] = getterLE;
+  DataBuffer.prototype[setterLEName] = setterLE;
+
+  // Create array accessors
+  const getterLEArrayName = 'get' + type + 'ArrayLE';
+  const setterLEArrayName = 'set' + type + 'ArrayLE';
+  const getterBEArrayName = 'get' + type + 'ArrayBE';
+  const setterBEArrayName = 'set' + type + 'ArrayBE';
+  if (bytes !== 1) {
+    // Check endianness of the computer: The typed array view types operate
+    // with the endianness of the host computer. :(
+    // Modern computers doesn't use middle endian at all - it can be simply
+    // ignored.
+    let a = new Uint16Array([0x1234]);
+    let b = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+    let isBigEndian = b[0] === 0x12;
+    if (isBigEndian) {
+      // Most systems don't use big endian, however we have to make sure that
+      // all systems are compatiable
+      let nativeEncoder = createArrayNativeEncoder(type, bytes);
+      DataBuffer.prototype[getterBEArrayName] = nativeEncoder.getter;
+      DataBuffer.prototype[setterBEArrayName] = nativeEncoder.setter;
+      // And hand-crafted little endian encoder.
+      let endianEncoder = createArrayEndianEncoder(type, bytes, true);
+      DataBuffer.prototype[getterLEArrayName] = endianEncoder.getter;
+      DataBuffer.prototype[setterLEArrayName] = endianEncoder.setter;
+    } else {
+      // Little endian.
+      let nativeEncoder = createArrayNativeEncoder(type, bytes);
+      DataBuffer.prototype[getterLEArrayName] = nativeEncoder.getter;
+      DataBuffer.prototype[setterLEArrayName] = nativeEncoder.setter;
+      // And hand-crafted big endian encoder.
+      let endianEncoder = createArrayEndianEncoder(type, bytes, false);
+      DataBuffer.prototype[getterBEArrayName] = endianEncoder.getter;
+      DataBuffer.prototype[setterBEArrayName] = endianEncoder.setter;
+    }
+  } else {
+    let nativeEncoder = createArrayNativeEncoder(type, bytes);
+    DataBuffer.prototype[getterBEArrayName] = nativeEncoder.getter;
+    DataBuffer.prototype[setterBEArrayName] = nativeEncoder.setter;
+    DataBuffer.prototype[getterLEArrayName] = nativeEncoder.getter;
+    DataBuffer.prototype[setterLEArrayName] = nativeEncoder.setter;
+  }
 });

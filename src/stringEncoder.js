@@ -21,11 +21,11 @@ export default function createStringEncoder(charset = 'utf-8') {
     encodeImpl: function(namespace, value, dataView) {
       let buffer = encoder.encode(value);
       namespace.uvar.encodeImpl(namespace, buffer.length, dataView);
-      dataView.setUint8Array(buffer);
+      dataView.setUint8ArrayBE(buffer);
     },
     decodeImpl: function(namespace, dataView) {
       let size = namespace.uvar.decodeImpl(namespace, dataView);
-      return decoder.decode(dataView.getUint8Array(size));
+      return decoder.decode(dataView.getUint8ArrayBE(size));
     },
   };
 }
@@ -43,7 +43,7 @@ export function createUTF16StringEncoder(littleEndian) {
     encodeImpl: function(namespace, value, dataView) {
       namespace.uvar.encodeImpl(namespace, value.length * 2, dataView);
       for (let i = 0; i < value.length; ++i) {
-        dataView.setUint16(value.charCodeAt(i), littleEndian);
+        dataView.setUint16BE(value.charCodeAt(i), littleEndian);
       }
     },
     decodeImpl: function(namespace, dataView) {
@@ -52,12 +52,12 @@ export function createUTF16StringEncoder(littleEndian) {
       if (littleEndian) {
         let data = new Uint16Array(size);
         for (let i = 0; i < size; ++i) {
-          data.push(dataView.getUint16(littleEndian));
+          data.push(dataView.getUint16BE(littleEndian));
         }
         return String.fromCharCode.apply(null, data);
       } else {
         return String.fromCharCode.apply(null,
-          dataView.getUint16Array(size * 2));
+          dataView.getUint16ArrayBE(size * 2));
       }
     },
   };
