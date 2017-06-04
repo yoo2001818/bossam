@@ -120,6 +120,50 @@ function createArrayNativeEncoder(type, bytes) {
   return { getter, setter };
 }
 
+// Creates unoptimized array encoder with custom endian.
+// endian: true if little endian, following DataView spec.
+function createArrayEndianEncoder(type, bytes, name, endian) {
+  let endianStr = '';
+  if (bytes !== 1) {
+    endianStr = endian ? 'LE' : 'BE';
+  }
+  const getter = new Function('size', 'buffer', `
+    var sizeCount = size / ${bytes};
+    var output;
+    if (buffer != null) {
+      output = buffer;
+      if (buffer.length > sizeCount) {
+        throw new Error('Buffer size is smaller than requested size');
+      }
+    } else {
+      output = new ${type}Array(sizeCount);
+    }
+    for (var i = 0; i < sizeCount; ++i) {
+      output[i] = this.buffer.read${name}${endianStr}(this.position +
+        i * ${bytes}, true);
+    }
+    this.position += size;
+    return output;
+  `);
+  // It may look weird because the arguments order is different from getter,
+  // but it's alright because 'size' is optional in setter, and 'buffer' is
+  // optional in getter.
+  const setter = new Function('buffer', 'size', `
+    var maxSize = size == null ? buffer.length : size / ${bytes};
+    var minSize = Math.min(maxSize, buffer.length);
+    for (var i = 0; i < minSize; ++i) {
+      this.buffer.write${name}${endianStr}(buffer[i], this.position +
+        i * ${bytes}, true);
+    }
+    if (maxSize !== minSize) {
+      this.buffer.fill(0, this.position + minSize * ${bytes},
+        this.position + maxSize * ${bytes});
+    }
+    this.position += maxSize * ${bytes};
+  `);
+  return { getter, setter };
+}
+
 // Implement each accessor function. Since copy & paste is not preferred,
 // I decided to alter prototypes to create functions dynamically.
 [
@@ -178,86 +222,22 @@ function createArrayNativeEncoder(type, bytes) {
     if (isBigEndian) {
       // Most systems don't use big endian, however we have to make sure that
       // all systems are compatiable
-      let nativeEncoder = createArrayNativeEncoder(type, bytes, nodeType);
+      let nativeEncoder = createArrayNativeEncoder(type, bytes, name);
       DataBuffer.prototype[getterBEArrayName] = nativeEncoder.getter;
       DataBuffer.prototype[setterBEArrayName] = nativeEncoder.setter;
       // And hand-crafted little endian encoder.
-      const getter = new Function('size', 'buffer', `
-        var output;
-        if (buffer != null) {
-          output = buffer;
-          if (buffer.length > size / ${bytes}) {
-            throw new Error('Buffer size is smaller than requested size');
-          }
-        } else {
-          output = new ${type}Array(size / ${bytes});
-        }
-        for (var i = 0; i < size / ${bytes}; ++i) {
-          output[i] = this.buffer.read${name}${le}(this.position + i * ${bytes},
-            true);
-        }
-        this.position += size;
-        return output;
-      `);
-      // It may look weird because the arguments order is different from getter,
-      // but it's alright because 'size' is optional in setter, and 'buffer' is
-      // optional in getter.
-      const setter = new Function('buffer', 'size', `
-        var maxSize = size == null ? buffer.length : size / ${bytes};
-        var minSize = Math.min(maxSize, buffer.length);
-        for (var i = 0; i < minSize; ++i) {
-          this.buffer.write${name}${le}(buffer[i], this.position + i * ${bytes},
-            true);
-        }
-        if (maxSize !== minSize) {
-          this.buffer.fill(0, this.position + minSize * ${bytes},
-            this.position + maxSize * ${bytes});
-        }
-        this.position += maxSize * ${bytes};
-      `);
-      DataBuffer.prototype[getterLEArrayName] = getter;
-      DataBuffer.prototype[setterLEArrayName] = setter;
+      let endianEncoder = createArrayEndianEncoder(type, bytes, name, true);
+      DataBuffer.prototype[getterLEArrayName] = endianEncoder.getter;
+      DataBuffer.prototype[setterLEArrayName] = endianEncoder.setter;
     } else {
       // Little endian.
-      let nativeEncoder = createArrayNativeEncoder(type, bytes, nodeType);
+      let nativeEncoder = createArrayNativeEncoder(type, bytes, name);
       DataBuffer.prototype[getterLEArrayName] = nativeEncoder.getter;
       DataBuffer.prototype[setterLEArrayName] = nativeEncoder.setter;
       // And hand-crafted big endian encoder.
-      const getter = new Function('size', 'buffer', `
-        var output;
-        if (buffer != null) {
-          output = buffer;
-          if (buffer.length > size / ${bytes}) {
-            throw new Error('Buffer size is smaller than requested size');
-          }
-        } else {
-          output = new ${type}Array(size / ${bytes});
-        }
-        for (var i = 0; i < size / ${bytes}; ++i) {
-          output[i] = this.buffer.read${name}${be}(this.position + i * ${bytes},
-            true);
-        }
-        this.position += size;
-        return output;
-      `);
-      // It may look weird because the arguments order is different from getter,
-      // but it's alright because 'size' is optional in setter, and 'buffer' is
-      // optional in getter.
-      const setter = new Function('buffer', 'size', `
-        var maxSize = size == null ? buffer.length : size / ${bytes};
-        var minSize = Math.min(maxSize, buffer.length);
-        for (var i = 0; i < minSize; ++i) {
-          this.buffer.write${name}${be}(buffer[i], this.position + i * ${bytes},
-            true);
-        }
-        if (maxSize !== minSize) {
-          this.buffer.fill(0, this.position + minSize * ${bytes},
-            this.position + maxSize * ${bytes});
-        }
-        this.position += maxSize * ${bytes};
-      `);
-      DataBuffer.prototype[getterBEArrayName] = getter;
-      DataBuffer.prototype[setterBEArrayName] = setter;
+      let endianEncoder = createArrayEndianEncoder(type, bytes, name, false);
+      DataBuffer.prototype[getterBEArrayName] = endianEncoder.getter;
+      DataBuffer.prototype[setterBEArrayName] = endianEncoder.setter;
     }
   }
 });
