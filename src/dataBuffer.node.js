@@ -218,7 +218,7 @@ function createArrayEndianEncoder(type, bytes, name, endian) {
     // ignored.
     let a = new Uint16Array([0x1234]);
     let b = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
-    let isBigEndian = (b[0] === 0x12);
+    let isBigEndian = b[0] === 0x12;
     if (isBigEndian) {
       // Most systems don't use big endian, however we have to make sure that
       // all systems are compatiable
