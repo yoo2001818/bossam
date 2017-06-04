@@ -120,6 +120,16 @@ describe('compileFromCode', () => {
     let buffer = Data.encode({ a: [1, 2, 3] });
     expect(byteArrayToHex(buffer)).toBe('010203');
   });
+  it('should calculate function expressions', () => {
+    let { Data } = compileFromCode(`
+      struct Data2<T, S> {
+        a: [T; floor(S / sizeof(T))],
+      }
+      struct Data = Data2<u16, 7>;
+    `);
+    let buffer = Data.encode({ a: [1, 2, 3] });
+    expect(byteArrayToHex(buffer)).toBe('000100020003');
+  });
   it('should encode alias structs', () => {
     let { Data } = compileFromCode('struct Data = u8;');
     let buffer = Data.encode(3);

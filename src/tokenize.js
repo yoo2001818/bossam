@@ -39,6 +39,7 @@ const SYNTAX_TABLE = {
     [/-/g, Token('minus')],
     [/\//g, Token('slash')],
     [/\*/g, Token('asterisk')],
+    [/%/g, Token('percent')],
     [/\s+/g, NoOp],
   ],
   commentBlock: [

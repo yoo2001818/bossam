@@ -48,13 +48,44 @@ const OPERANDS = {
     value: true,
     exec: (a, b) => a - b,
   },
+  percent: {
+    size: 2,
+    value: true,
+    exec: (a, b) => a % b,
+  },
+  floor: {
+    size: 1,
+    value: true,
+    exec: a => Math.floor(a),
+  },
+  round: {
+    size: 1,
+    value: true,
+    exec: a => Math.round(a),
+  },
+  ceil: {
+    size: 1,
+    value: true,
+    exec: a => Math.ceil(a),
+  },
+  sizeof: {
+    size: 1,
+    exec: (namespace, generics, a) => {
+      let size = namespace.resolveType(a, generics).maxSize;
+      if (size === Infinity) {
+        throw new Error('sizeof can\'t be used for infinitely expandable' +
+          ' structs');
+      }
+      return { jsConst: true, name: size };
+    },
+  },
 };
 
-export function resolveExpression(operands, generics) {
+export function resolveExpression(namespace, operands, generics) {
   let stack = [];
   operands.forEach(op => {
     if (op.op) {
-      let operandName = op.type === 'keyword' ? op.value : op.type;
+      let operandName = op.type === 'keyword' ? op.name : op.type;
       let operand = OPERANDS[operandName];
       if (operand == null) {
         throw new Error('Operand ' + operandName + ' does not exist');
@@ -75,7 +106,8 @@ export function resolveExpression(operands, generics) {
           })),
         });
       } else {
-        output.push(operand.exec.apply(null, stack.slice(-operand.size)));
+        output.push(operand.exec.apply(null, [namespace, generics].concat(
+          stack.slice(-operand.size))));
       }
       stack = output;
     } else {
@@ -86,8 +118,8 @@ export function resolveExpression(operands, generics) {
       }
     }
   });
-  if (stack.length > 1) {
-    throw new Error('Expression result has more than 1 values');
+  if (stack.length !== 1) {
+    throw new Error('Expression result length must be 1');
   }
   return stack.pop();
 }
@@ -121,7 +153,7 @@ export function resolveType(namespace, type, parentGenerics) {
       let generics;
       if (resolvedTypeVal.generics != null) {
         generics = resolvedTypeVal.generics.map(
-          op => resolveExpression(op, parentGenerics));
+          op => resolveExpression(namespace, op, parentGenerics));
       }
       let astKey = getGenericIdentifier({ name: resolvedTypeVal.name },
         generics);
@@ -142,7 +174,7 @@ export function resolveType(namespace, type, parentGenerics) {
   let generics;
   if (resolvedType.generics != null) {
     generics = resolvedType.generics.map(
-      op => resolveExpression(op, parentGenerics));
+      op => resolveExpression(namespace, op, parentGenerics));
   }
   return resolveBlock(namespace, resolvedType.name,
     generics, parentGenerics);
@@ -225,7 +257,7 @@ function compileBlock(namespace, astBlock, generics, namespaceLow) {
 function compileArray(namespace, ast, generics) {
   // Just a downgraded version of Array<T>.
   let type = resolveType(namespace, ast.type, generics);
-  let size = resolveExpression(ast.size, generics).name;
+  let size = resolveExpression(namespace, ast.size, generics).name;
   // if (ast.size.generic) size = generics[ast.size.name].name;
   let codeGen = new CodeGenerator(namespace);
   let nullable = ast.type.nullable;

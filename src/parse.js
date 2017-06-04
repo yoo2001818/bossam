@@ -398,7 +398,7 @@ function getExpression(state, generics) {
       } else {
         buffer = funcExpr();
       }
-    } while (peekIf(state, ['asterisk', 'slash']));
+    } while (peekIf(state, ['asterisk', 'slash', 'percent']));
     return buffer;
   }
   function funcExpr() {
