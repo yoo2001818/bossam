@@ -437,13 +437,13 @@ function getExpression(state, generics) {
     return [match(state, {
       else: (state, token) => {
         state.push(token);
-        return Object.assign({ type: true }, getType(state, generics));
+        return getType(state, generics);
       },
       string: (state, token) => {
-        return { const: true, value: token.value };
+        return { jsConst: true, name: token.value };
       },
       number: (state, token) => {
-        return { const: true, value: token.value };
+        return { jsConst: true, name: token.value };
       },
     })];
   }

@@ -14,11 +14,6 @@ export default function compile(ast, namespace = createNamespace()) {
     namespace.ast[key] = ast[key];
   }
   // Resolve each block - all blocks will be compiled then.
-  // However, if a circular reference occurs, a stack overflow will happen.
-  // It can be resolved by sacrificing some functions to resolve other
-  // datatypes using proxy objects instead of direct function references.
-  // But such use case won't happen, so I'll do it someday later.
-  // TODO Fix stack overflow.
   for (let key in ast) {
     resolveBlock(namespace, key);
   }
@@ -32,24 +27,69 @@ export function assert(expected, received) {
   }
 }
 
+const OPERANDS = {
+  asterisk: {
+    size: 2,
+    value: true,
+    exec: (a, b) => a * b,
+  },
+  slash: {
+    size: 2,
+    value: true,
+    exec: (a, b) => a / b,
+  },
+  plus: {
+    size: 2,
+    value: true,
+    exec: (a, b) => a + b,
+  },
+  minus: {
+    size: 2,
+    value: true,
+    exec: (a, b) => a - b,
+  },
+};
+
 export function resolveExpression(operands, generics) {
   let stack = [];
   operands.forEach(op => {
-    if (op.type) {
+    if (op.op) {
+      let operandName = op.type === 'keyword' ? op.value : op.type;
+      let operand = OPERANDS[operandName];
+      if (operand == null) {
+        throw new Error('Operand ' + operandName + ' does not exist');
+      }
+      if (stack.length < operand.size) {
+        throw new Error(operand.size + ' arguments expected; ' + stack.length +
+          ' received');
+      }
+      let output = stack.slice(0, -operand.size);
+      if (operand.value) {
+        output.push({
+          jsConst: true,
+          name: operand.exec.apply(null, stack.slice(-operand.size).map(v => {
+            if (!v.jsConst) {
+              throw new Error(operandName + ' expects numeric value');
+            }
+            return v.name;
+          })),
+        });
+      } else {
+        output.push(operand.exec.apply(null, stack.slice(-operand.size)));
+      }
+      stack = output;
+    } else {
       if (op.generic) {
         stack.push(generics[op.name]);
       } else {
         stack.push(op);
       }
-    } else if (op.const) {
-      stack.push(op);
-    } else {
-      // TODO
     }
   });
-  let result = stack.pop();
-  if (result.const) return { jsConst: true, name: result.value };
-  return result;
+  if (stack.length > 1) {
+    throw new Error('Expression result has more than 1 values');
+  }
+  return stack.pop();
 }
 
 export function resolveType(namespace, type, parentGenerics) {
