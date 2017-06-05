@@ -68,6 +68,16 @@ const OPERANDS = {
     value: true,
     exec: a => Math.ceil(a),
   },
+  min: {
+    size: 2,
+    value: true,
+    exec: (a, b) => Math.min(a, b),
+  },
+  max: {
+    size: 2,
+    value: true,
+    exec: (a, b) => Math.max(a, b),
+  },
   sizeof: {
     size: 1,
     exec: (namespace, generics, a) => {

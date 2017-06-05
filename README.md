@@ -134,6 +134,30 @@ enum Rarity<T>(String) {
 struct Hello = Rarity<i32>;
 struct There = Item.Axe;
 
+// Expressions are possible too.
+struct TestArray = [i8; 1 + 5 * (6 % 2) + floor(3 / 2)];
+// ... It can also be used with generics.
+struct TestArray<T> {
+  a: [i16; sizeof(Entity) * T],
+}
+struct TestArray2 = TestArray<3>;
+
+```
+
+### Expressions
+
+```rust
+// a + b
+// a - b
+// a * b
+// a / b
+// a % b
+// floor(a)
+// round(a)
+// ceil(a)
+// min(a, b)
+// max(a, b)
+// sizeof(T)
 ```
 
 ### Primitive types
