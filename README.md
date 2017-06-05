@@ -166,6 +166,30 @@ All types use big endian unless specified.
 - Padded&lt;T, S&gt; - Type T padded to size S. If the type is larger than the
   provided size, it'll throw an error.
 
+#### Little endian types
+Bossam supports little endian for the sake of optimization - it's not
+preferred endian for exchanging data. However, some may need to quickly read
+huge array of floats, ints, etc. Since most systems use little endian, little
+endian would be used for this purpose. Bossam automatically uses raw ArrayBuffer
+access to read arrays if they're aligned and the system uses same endian
+format, instead of DataView.
+
+- u8le - 8bit unsigned integer.
+- i8le - 8bit signed integer.
+- u16le - 16bit unsigned integer.
+- i16le - 16bit signed integer.
+- u32le - 32bit unsigned integer.
+- i32le - 32bit signed integer.
+- u64le - 64bit unsigned integer. Since Javascript doesn't support 64bit
+  integers, Bossam forcefully converts them to double. This means that numbers
+  are usable up to 53 bits.
+- i64le - 64bit signed integer. Same constraint for u64 affects this too.
+- f32le - 32bit IEEE 754 floating number.
+- f64le - 64bit IEEE 754 floating number.
+
+Note that ivarle, uvarle is not available because it depends on the big endian
+order.
+
 ## Resulting byte sizes
 Bossam encodes the data without any metadata or specifier. If you specify 4
 u16s, then it'll be encoded to 8 bytes.
