@@ -9,6 +9,14 @@ const TYPED_ARRAY_MAP = {
   i32: 'Int32ArrayBE',
   f32: 'Float32ArrayBE',
   f64: 'Float64ArrayBE',
+  u8le: 'Uint8ArrayLE',
+  i8le: 'Int8ArrayLE',
+  u16le: 'Uint16ArrayLE',
+  i16le: 'Int16ArrayLE',
+  u32le: 'Uint32ArrayLE',
+  i32le: 'Int32ArrayLE',
+  f32le: 'Float32ArrayLE',
+  f64le: 'Float64ArrayLE',
 };
 
 export function generateArrayEncoderCode(namespace, codeGen, type, nullable, size) {

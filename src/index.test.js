@@ -175,6 +175,33 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('fffefefefefefeff');
     expect(Data.decode(buffer)).toEqual([-0x01010101010101]);
   });
+  it('should correctly encode u64le', () => {
+    // Check 64, 63, 33, 32, 31th position especially. However, since
+    // Javascript double supports up to 53-bit integer precision, it's
+    // meaningless to check 64, 63th position.
+    let { Data } = compileFromCode('struct Data(u64le);');
+    let buffer = Data.encode([0xffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('ffffffff00000000');
+    expect(Data.decode(buffer)).toEqual([0xffffffff]);
+    buffer = Data.encode([0xf9f9ffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('fffffffff9f90000');
+    expect(Data.decode(buffer)).toEqual([0xf9f9ffffffff]);
+  });
+  it('should correctly encode i64le', () => {
+    let { Data } = compileFromCode('struct Data(i64le);');
+    let buffer = Data.encode([0xffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('ffffffff00000000');
+    expect(Data.decode(buffer)).toEqual([0xffffffff]);
+    buffer = Data.encode([0xf9f9ffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('fffffffff9f90000');
+    expect(Data.decode(buffer)).toEqual([0xf9f9ffffffff]);
+    buffer = Data.encode([-0xf9f9ffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('010000000606ffff');
+    expect(Data.decode(buffer)).toEqual([-0xf9f9ffffffff]);
+    buffer = Data.encode([-0x01010101010101]);
+    expect(byteArrayToHex(buffer)).toBe('fffefefefefefeff');
+    expect(Data.decode(buffer)).toEqual([-0x01010101010101]);
+  });
   it('should encode Date', () => {
     let { Data } = compileFromCode('struct Data(Date);');
     let buffer = Data.encode([new Date('1970-01-01T00:01Z')]);
@@ -285,7 +312,7 @@ describe('compileFromCode', () => {
       f32: new Float32Array(data.f32),
     });
   });
-  it('should use big endian for f32', () => {
+  it('should use big endian for f32 array', () => {
     let { Point } = compileFromCode(`
       struct Point = [f32; 2];
     `);
@@ -295,6 +322,25 @@ describe('compileFromCode', () => {
     // the numbers into bytes
     expect(byteArrayToHex(buffer)).toBe('4048f5c3c0a8f5c3');
     expect(Point.decode(buffer)).toEqual(new Float32Array([3.14, -5.28]));
+  });
+  it('should use little endian for f32le array', () => {
+    let { Point } = compileFromCode(`
+      struct Point = [f32le; 2];
+    `);
+    let buffer = Point.encode([3.14, -5.28]);
+    // Since I have no idea how IEEE 754 is laid out, so I just used
+    // https://www.h-schmidt.net/FloatConverter/IEEE754.html to convert
+    // the numbers into bytes
+    expect(byteArrayToHex(buffer)).toBe('c3f54840c3f5a8c0');
+    expect(Point.decode(buffer)).toEqual(new Float32Array([3.14, -5.28]));
+  });
+  it('should correctly encode little endian types', () => {
+    let { Point } = compileFromCode(`
+      struct Point(i8le, u8le, i16le, u16le, i32le, u32le, f32le, f64le);
+    `);
+    let buffer = Point.encode([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(byteArrayToHex(buffer)).toBe('0102030004000500000006000000' +
+      '0000e0400000000000002040');
   });
   it('should encode Padded correctly', () => {
     let { Data, Data3 } = compileFromCode(`
