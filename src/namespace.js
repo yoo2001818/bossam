@@ -68,6 +68,18 @@ const builtInNamespace = {
     'dataView.setUint32LE(#value#);',
     '#value# = dataView.getUint32LE();',
   ),
+  u48: createPrimitive('u48', 6,
+    'dataView.setUint16BE(Math.floor(#value# / Math.pow(2, 32)));\n' +
+    'dataView.setUint32BE(#value# % Math.pow(2, 32));',
+    '#value# = dataView.getUint16BE() * Math.pow(2, 32) + ' +
+      'dataView.getUint32BE();',
+  ),
+  u48le: createPrimitive('u48le', 6,
+    'dataView.setUint32LE(#value# % Math.pow(2, 32));\n' +
+    'dataView.setUint16LE(Math.floor(#value# / Math.pow(2, 32)));',
+    '#value# = dataView.getUint32LE() + ' +
+    'dataView.getUint16LE() * Math.pow(2, 32);',
+  ),
   u64: createPrimitive('u64', 8,
     'dataView.setUint32BE(Math.floor(#value# / Math.pow(2, 32)));\n' +
     'dataView.setUint32BE(#value# % Math.pow(2, 32));',

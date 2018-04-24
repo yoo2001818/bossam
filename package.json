@@ -1,6 +1,6 @@
 {
   "name": "bossam",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "JavaScript object serialization library with Rust-like DSL",
   "main": "lib/index.js",
   "scripts": {

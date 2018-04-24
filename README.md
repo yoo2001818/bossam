@@ -169,6 +169,7 @@ All types use big endian unless specified.
 - i16 - 16bit signed integer.
 - u32 - 32bit unsigned integer.
 - i32 - 32bit signed integer.
+- u48 - 48bit unsigned integer.
 - u64 - 64bit unsigned integer. Since Javascript doesn't support 64bit
   integers, Bossam forcefully converts them to double. This means that numbers
   are usable up to 53 bits.
@@ -204,6 +205,7 @@ format, instead of DataView.
 - i16le - 16bit signed integer.
 - u32le - 32bit unsigned integer.
 - i32le - 32bit signed integer.
+- u48le - 48bit unsigned integer.
 - u64le - 64bit unsigned integer. Since Javascript doesn't support 64bit
   integers, Bossam forcefully converts them to double. This means that numbers
   are usable up to 53 bits.

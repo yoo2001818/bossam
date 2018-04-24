@@ -148,6 +148,16 @@ describe('compileFromCode', () => {
     expect(byteArrayToHex(buffer)).toBe('050102030405');
     expect(Data.decode(buffer)).toEqual(data);
   });
+  it('should correctly encode u48', () => {
+    // Check 33, 32, 31th position especially.
+    let { Data } = compileFromCode('struct Data(u48);');
+    let buffer = Data.encode([0xffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('0000ffffffff');
+    expect(Data.decode(buffer)).toEqual([0xffffffff]);
+    buffer = Data.encode([0xf9f9ffffffff]);
+    expect(byteArrayToHex(buffer)).toBe('f9f9ffffffff');
+    expect(Data.decode(buffer)).toEqual([0xf9f9ffffffff]);
+  });
   it('should correctly encode u64', () => {
     // Check 64, 63, 33, 32, 31th position especially. However, since
     // Javascript double supports up to 53-bit integer precision, it's
